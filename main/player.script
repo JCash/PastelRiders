@@ -45,7 +45,9 @@ function update(self, dt)
 	self.speed = self.speed * self.enginebrake
 	if self.speed > self.maxspeed then
 		self.speed = self.maxspeed
-	elseif self.speed < 0.095 then
+	elseif self.speed < self.maxspeed * -0.5 then
+		self.speed = self.maxspeed * -0.5
+	elseif math.abs(self.speed) < 0.095 then
 		self.speed = 0
 	end
 	
