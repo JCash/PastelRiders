@@ -1,6 +1,6 @@
 local constants = require("main/constants")
-local NUM_DIRECTIONS = 32
-local SPRITE_ROTATION = 8 -- since the sprite is directed in positive y, and not positive x
+local NUM_DIRECTIONS = 64
+local SPRITE_ROTATION = 16 -- since the sprite is directed in positive y, and not positive x
 
 local function angle_to_rad(angle)
 	return (2.0 * math.pi * angle) / NUM_DIRECTIONS
@@ -12,6 +12,10 @@ local function get_direction_from_angle(angle)
 	local rad = angle_to_rad(angle)
 	return vmath.vector3(math.cos(rad), math.sin(rad), 0)
 end
+local function get_direction_from_rad(rad)
+	return vmath.vector3(math.cos(rad), math.sin(rad), 0)
+end
+
 
 function init(self)
 	-- car properties
@@ -19,28 +23,39 @@ function init(self)
 	self.acceleration_multiplier = 1.0
 	self.brake_multiplier = 1.0
 	self.brakes = 2.0
-	self.maxspeed = 2.5
+	self.maxspeed = 150.0
 	-- 
     self.speed = 0.0
-    self.acceleration = 0.1
-    self.brakes = 0.1
-    self.enginebrake = 0.97
+    self.acceleration = 20
+    self.brakes = 15
+    self.enginebrake = 0.975
     self.turnspeed = math.pi -- rad /seconds
     self.turndirection = 0
     
-    self.angle = 8
+    self.angle = SPRITE_ROTATION
     self.radangle = angle_to_rad(self.angle)
     self.direction = get_direction_from_angle(self.angle)
-    
-    pprint(self.direction)
+    self.position = go.get_position(".")
+end
+
+
+function round(x)
+  return x>=0 and math.floor(x+0.5) or math.ceil(x-0.5)
 end
 
 function update(self, dt)
 
 	-- POSITION
-	local pos = go.get_position(".")
-	pos = pos + self.speed * self.direction
-	go.set_position(pos, ".")
+	self.position = self.position + self.speed * dt * self.direction
+	-- make sure we're aligned to pixels, for the tiles not to get messed up
+	local visual_position = vmath.vector3(round(self.position.x), round(self.position.y), self.position.z)
+	go.set_position(visual_position, ".")
+	
+	-- CAMERA
+	local display_width = 800
+	local display_height = 600
+	local camerapos = visual_position - vmath.vector3(display_width/4, display_height/4, 0)
+	go.set_position(camerapos, "/camerago#camera")
 	
 	self.speed = self.speed * self.enginebrake
 	if self.speed > self.maxspeed then
@@ -58,7 +73,9 @@ function update(self, dt)
 		self.angle = rad_to_angle(self.radangle)
 		
     	self.direction = get_direction_from_angle(self.angle)
+    	--self.direction = get_direction_from_rad(self.radangle)
     	go.set_rotation( vmath.quat_rotation_z( angle_to_rad(self.angle-SPRITE_ROTATION) ), ".")
+    	--go.set_rotation( vmath.quat_rotation_z( self.radangle - math.pi*0.5, ".") )
 	end
 	self.turndirection = 0
 end

@@ -18,4 +18,8 @@ key_trigger {
   input: KEY_SPACE
   action: "space"
 }
+key_trigger {
+  input: KEY_1
+  action: "1"
+}
 

@@ -1,6 +1,5 @@
 local constants = require("main/constants")
 
-local TILE_SIZE = 32
 local player_positions = {}
 local players = {}
 
@@ -10,6 +9,7 @@ local INPUT_KEY_LEFT = 3
 local INPUT_KEY_RIGHT = 4
 local player_input_keys = {}
 
+local recording = 0
 
 -- Takes a 1 based array index, creates a zero based 2d tile coordinate
 local function index_to_coords(index, width)
@@ -26,22 +26,34 @@ end
 
 -- Takes a zero based 2d tile coordinate, returns a 2d screen coordinate
 local function coords_to_screen(x, y)
-    local scrx = TILE_SIZE * x + TILE_SIZE / 2
-    local scry = TILE_SIZE * y + TILE_SIZE / 2
+    local scrx = constants.TILE_SIZE * x + constants.TILE_SIZE / 2
+    local scry = constants.TILE_SIZE * y + constants.TILE_SIZE / 2
     return scrx, scry
 end
 
 -- Takes a 2d screen coordinate, returns a zero based 2d tile coordinate
 local function screen_to_coords(x, y)
-    return math.floor(x / TILE_SIZE), math.floor(y / TILE_SIZE)
+    return math.floor(x / constants.TILE_SIZE), math.floor(y / constants.TILE_SIZE)
 end
 
 function init(self)
     msg.post(".", "acquire_input_focus")
     msg.post("levels#level01", "load")
+    
+    self.display_width = sys.get_config("display.width")
+    self.display_height = sys.get_config("display.height")
 end
 
 function update(self, dt)
+	local game_state = constants.GAME_STATE_INGAME
+	if game_state == constants.GAME_STATE_INGAME then
+		local pos = go.get_position(players[1])
+		pos = pos - vmath.vector3(self.display_width/4, self.display_height/4, 0)
+		-- make sure we're aligned to pixels, for the tiles not to get messed up
+		--pos.x = round(pos.x)
+		--pos.y = round(pos.y)
+		--go.set_position(pos, "/camerago#camera")
+	end
 end
 
 
@@ -69,7 +81,10 @@ function on_message(self, message_id, message, sender)
     
         go.delete_all(players)
         players = {}
-        initplayer(1, vmath.vector3(TILE_SIZE * 2 + TILE_SIZE/2, TILE_SIZE * 9 + TILE_SIZE/2, 0.2) )
+        initplayer(1, vmath.vector3(constants.TILE_SIZE * 2 + constants.TILE_SIZE/2, constants.TILE_SIZE * 9 + constants.TILE_SIZE/2, 0.2) )
+        
+        -- focus camera on player
+        msg.post("/camerago#camera", "acquire_camera_focus")
     end
 end
 
@@ -84,5 +99,16 @@ function on_input(self, action_id, action)
     	msg.post(players[playerid], constants.PLAYER_MESSAGE_LEFT)
     elseif action_id == player_input_keys[playerid][INPUT_KEY_RIGHT] then
     	msg.post(players[playerid], constants.PLAYER_MESSAGE_RIGHT)
+    	
+    elseif action_id == hash("1") and action.pressed then
+    	if recording == 0 then
+    		print("RECORDING")
+    		msg.post("@system:", "start_record", { file_name = "test_rec.ivf" } )
+    		recording = 1
+    	else
+    		print("STOPPED RECORDING")
+    		msg.post("@system:", "stop_record")
+    		recording = 0
+    	end
     end
 end

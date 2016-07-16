@@ -1,6 +1,12 @@
 
 local M = {}
 
+M.TILE_SIZE = 32
+
+M.GAME_STATE_SPLASH = 0
+M.GAME_STATE_INGAME = 1
+
+
 M.PLAYER_MESSAGE_ACCELERATE = hash("accelerate")
 M.PLAYER_MESSAGE_BRAKE 		= hash("brake")
 M.PLAYER_MESSAGE_LEFT 		= hash("left")
