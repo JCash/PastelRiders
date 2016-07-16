@@ -1,0 +1,76 @@
+local constants = require("main/constants")
+local NUM_DIRECTIONS = 32
+local SPRITE_ROTATION = 8 -- since the sprite is directed in positive y, and not positive x
+
+local function angle_to_rad(angle)
+	return (2.0 * math.pi * angle) / NUM_DIRECTIONS
+end
+local function rad_to_angle(rad)
+	return math.floor((rad * NUM_DIRECTIONS) / (2.0 * math.pi))
+end
+local function get_direction_from_angle(angle)
+	local rad = angle_to_rad(angle)
+	return vmath.vector3(math.cos(rad), math.sin(rad), 0)
+end
+
+function init(self)
+	-- car properties
+	self.traction = 1.0
+	self.acceleration_multiplier = 1.0
+	self.brake_multiplier = 1.0
+	self.brakes = 2.0
+	self.maxspeed = 2.5
+	-- 
+    self.speed = 0.0
+    self.acceleration = 0.1
+    self.brakes = 0.1
+    self.enginebrake = 0.97
+    self.turnspeed = math.pi -- rad /seconds
+    self.turndirection = 0
+    
+    self.angle = 8
+    self.radangle = angle_to_rad(self.angle)
+    self.direction = get_direction_from_angle(self.angle)
+    
+    pprint(self.direction)
+end
+
+function update(self, dt)
+
+	-- POSITION
+	local pos = go.get_position(".")
+	pos = pos + self.speed * self.direction
+	go.set_position(pos, ".")
+	
+	self.speed = self.speed * self.enginebrake
+	if self.speed > self.maxspeed then
+		self.speed = self.maxspeed
+	elseif self.speed < 0.095 then
+		self.speed = 0
+	end
+	
+	-- ROTATION
+	if self.turndirection then
+		self.radangle = self.radangle + self.turndirection * self.turnspeed * dt
+		self.radangle = self.radangle % (2.0 * math.pi) 
+		self.angle = rad_to_angle(self.radangle)
+		
+    	self.direction = get_direction_from_angle(self.angle)
+    	go.set_rotation( vmath.quat_rotation_z( angle_to_rad(self.angle-SPRITE_ROTATION) ), ".")
+	end
+	self.turndirection = 0
+end
+
+function on_message(self, message_id, message, sender)
+    -- By sending input here, we're delaying it 1 frame
+    -- But it's not that important for this game
+    if message_id == constants.PLAYER_MESSAGE_ACCELERATE then    
+    	self.speed = self.speed + self.acceleration * self.acceleration_multiplier
+    elseif message_id == constants.PLAYER_MESSAGE_BRAKE then
+    	self.speed = self.speed - self.brakes * self.brake_multiplier
+    elseif message_id == constants.PLAYER_MESSAGE_LEFT then
+    	self.turndirection = 1
+    elseif message_id == constants.PLAYER_MESSAGE_RIGHT then
+    	self.turndirection = -1
+    end
+end
