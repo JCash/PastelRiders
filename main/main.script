@@ -103,7 +103,7 @@ function on_input(self, action_id, action)
     elseif action_id == hash("1") and action.pressed then
     	if recording == 0 then
     		print("RECORDING")
-    		msg.post("@system:", "start_record", { file_name = "test_rec.ivf" } )
+    		msg.post("@system:", "start_record", { file_name = "/Users/mawe/defold_rec.ivf" } )
     		recording = 1
     	else
     		print("STOPPED RECORDING")
