@@ -72,6 +72,41 @@ local function initplayer(playerid, pos)
     player_input_keys[playerid][INPUT_KEY_RIGHT] = hash("right")
 end
 
+
+local function stencil_anim_done(self, url, property)
+	print("stencil_anim_done")
+end
+
+local function do_screen_fade_in(width, height, startpos)
+    local num_tiles_x = math.ceil(width / constants.TILE_SIZE * 0.5)
+    local num_tiles_y = math.ceil(height / constants.TILE_SIZE * 0.5)
+    print("width/height", width, height)
+    print("#tiles", num_tiles_x, num_tiles_y, num_tiles_x*num_tiles_y)
+    
+    print("startpos", startpos)
+    local tiles = {}
+    local count = 1
+    for y = 0, num_tiles_y - 1 do
+        for x = 0, num_tiles_x - 1 do
+            local scrx, scry = coords_to_screen(x, y)
+            local tile = factory.create("#stencil_tile_factory", vmath.vector3(scrx - width/2 + startpos.x, scry - height/4, 0.8), vmath.quat_rotation_z(0), {}, vmath.vector3(0.5, 0.5, 0.5) )
+            tiles[tile] = tile
+            
+            local s = 0.9
+            --go.set_scale(vmath.vector3(s, s, s), tile)
+            --pprint(tile)
+            --local name = "main:/instance" .. tostring(count) .. "#sprite"
+            
+            count = count + 1
+            --print(name)
+            
+            print("x, y", x, y)
+            
+            --go.animate(tile, "scale", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, 0.5, count * 0.005, nil)
+        end
+    end
+end
+
 function on_message(self, message_id, message, sender)
 	if message_id == hash("proxy_loaded") then
         msg.post(sender, "init")
@@ -85,6 +120,13 @@ function on_message(self, message_id, message, sender)
         
         -- focus camera on player
         msg.post("/camerago#camera", "acquire_camera_focus")
+        
+        --go.set_position(player_positions[1], "/stencilmask")
+        --go.set_scale(vmath.vector3(0.01, 0.01, 0.01), "/stencilmask")
+        
+        --go.animate("/stencilmask#sprite", "scale.x", go.PLAYBACK_ONCE_FORWARD, 500, go.EASING_LINEAR, 1, 0, stencil_anim_done)
+        --go.animate("/stencilmask#sprite", "scale.y", go.PLAYBACK_ONCE_FORWARD, 500, go.EASING_LINEAR, 1, 0, nil)
+        do_screen_fade_in(self.display_width, self.display_height, player_positions[1])
     end
 end
 

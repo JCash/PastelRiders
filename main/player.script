@@ -68,7 +68,11 @@ function update(self, dt)
 	
 	-- ROTATION
 	if self.turndirection then
-		self.radangle = self.radangle + self.turndirection * self.turnspeed * dt
+    	if self.speed > 0 then
+			self.radangle = self.radangle + self.turndirection * self.turnspeed * dt
+		else
+			self.radangle = self.radangle + -1 * self.turndirection * self.turnspeed * dt
+		end
 		self.radangle = self.radangle % (2.0 * math.pi) 
 		self.angle = rad_to_angle(self.radangle)
 		
