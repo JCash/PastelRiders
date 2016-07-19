@@ -1,0 +1,9 @@
+images {
+  image: "/main/images/stencils/stencil_blob.png"
+}
+images {
+  image: "/main/images/stencils/white.png"
+}
+margin: 0
+extrude_borders: 0
+inner_padding: 0
