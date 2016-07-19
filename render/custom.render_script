@@ -13,6 +13,8 @@ function init(self)
     self.clear_color.z = sys.get_config("render.clear_color_blue", 0)
     self.clear_color.w = sys.get_config("render.clear_color_alpha", 0)
 
+	self.stencil_mask_enabled = true
+
     self.view = vmath.matrix4()
 end
 
@@ -32,25 +34,27 @@ function update(self)
 	render.set_projection(vmath.matrix4_orthographic(0, width, 0, height, -1, 1))
     --render.set_projection(vmath.matrix4_orthographic(0, render.get_width(), 0, render.get_height(), -1, 1))
 
-	-- Using the simple trick from Sven's post here: https://forum.defold.com/t/making-a-flashlight/286/3
-	-- 1. We need to disable color drawing while rendering the mask
-    render.set_color_mask(false, false, false, false)
-    
-    -- 2. Enable stencil test and setup stencil mask parameters
-    render.enable_state(render.STATE_STENCIL_TEST)
-    render.set_stencil_func(render.COMPARE_FUNC_ALWAYS, 1, 255)
-    render.set_stencil_op(render.STENCIL_OP_KEEP, render.STENCIL_OP_KEEP, render.STENCIL_OP_REPLACE)
-    render.set_stencil_mask(255)
-    
-    -- 3. Draw the mask
-    render.draw(self.mask_pred)
-	
-    -- 4. Update the stencil function to only let pixel pass that are equal to the mask result
-    render.set_stencil_func(render.COMPARE_FUNC_EQUAL, 1, 255)
-	
-    -- 5. Re-enable color drawing
-    render.set_color_mask(true, true, true, true)
-    
+	if self.stencil_mask_enabled then
+		-- Using the simple trick from Sven's post here: https://forum.defold.com/t/making-a-flashlight/286/3
+		-- 1. We need to disable color drawing while rendering the mask
+	    render.set_color_mask(false, false, false, false)
+	    
+	    -- 2. Enable stencil test and setup stencil mask parameters
+	    render.enable_state(render.STATE_STENCIL_TEST)
+	    render.set_stencil_func(render.COMPARE_FUNC_ALWAYS, 1, 255)
+	    render.set_stencil_op(render.STENCIL_OP_KEEP, render.STENCIL_OP_KEEP, render.STENCIL_OP_REPLACE)
+	    render.set_stencil_mask(255)
+	    
+	    -- 3. Draw the mask
+	    render.draw(self.mask_pred)
+		
+	    -- 4. Update the stencil function to only let pixel pass that are equal to the mask result
+	    render.set_stencil_func(render.COMPARE_FUNC_EQUAL, 1, 255)
+		
+	    -- 5. Re-enable color drawing
+	    render.set_color_mask(true, true, true, true)
+	end
+	    
     -- 6. Continue as rendering usual! :)
     render.enable_state(render.STATE_BLEND)
     render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
@@ -79,5 +83,9 @@ function on_message(self, message_id, message)
         self.clear_color = message.color
     elseif message_id == hash("set_view_projection") then
         self.view = message.view
+    elseif message_id == hash("disable_stencil_mask") then
+        self.stencil_mask_enabled = false
+    elseif message_id == hash("enable_stencil_mask") then
+        self.stencil_mask_enabled = true
     end
 end
