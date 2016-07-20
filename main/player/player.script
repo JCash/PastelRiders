@@ -1,4 +1,6 @@
 local constants = require("main/scripts/constants")
+local util = require("main/scripts/util")
+
 local NUM_DIRECTIONS = 64
 local SPRITE_ROTATION = 16 -- since the sprite is directed in positive y, and not positive x
 
@@ -34,6 +36,10 @@ function init(self)
     self.turnspeed = math.pi -- rad /seconds
     self.turndirection = 0
     
+    self.touching = {}
+    self.tumble_timer = 0 
+    self.tumble_direction = 0 
+    
     self.angle = SPRITE_ROTATION
     self.radangle = angle_to_rad(self.angle)
     self.direction = get_direction_from_angle(self.angle)
@@ -43,16 +49,21 @@ function init(self)
 end
 
 
-function round(x)
-  return x>=0 and math.floor(x+0.5) or math.ceil(x-0.5)
-end
-
 function update(self, dt)
+
+	-- TUMBLING
+	if self.tumble_timer == 0 and self.turndirection ~= 0 then
+		local message = self.touching[constants.PHYSICS_GROUP_OIL]
+		if message ~= nil then
+			self.tumble_timer = constants.TIMER_TUMBLE
+			self.tumble_direction = self.turndirection
+		end
+	end
 
 	-- POSITION
 	self.position = self.position + self.speed * dt * self.direction
 	-- make sure we're aligned to pixels, for the tiles not to get messed up
-	local visual_position = vmath.vector3(round(self.position.x), round(self.position.y), self.position.z)
+	local visual_position = vmath.vector3(util.round(self.position.x), util.round(self.position.y), self.position.z)
 	--local visual_position = self.position
 	go.set_position(visual_position, ".")
 	
@@ -60,8 +71,9 @@ function update(self, dt)
 	local display_width = 800
 	local display_height = 600
 	local camerapos = visual_position - vmath.vector3(display_width/4, display_height/4, 0)
-	go.set_position(camerapos, "/camera")
+	go.set_position(camerapos, "/camera#camera")
 	
+	-- SPEED
 	self.speed = self.speed * self.enginebrake
 	if self.speed > self.maxspeed then
 		self.speed = self.maxspeed
@@ -70,10 +82,18 @@ function update(self, dt)
 	elseif math.abs(self.speed) < 0.095 then
 		self.speed = 0
 	end
-	
+		
 	-- ROTATION
-	if self.turndirection then
-    	if self.speed > 0 then
+	if self.tumble_timer > 0 then
+		local unit = self.tumble_timer / constants.TIMER_TUMBLE
+		self.tumble_timer = self.tumble_timer - dt
+		if self.tumble_timer < 0 then
+			self.tumble_timer = 0
+			self.tumble_direction = 0
+		end
+		go.set_rotation( vmath.quat_rotation_z( self.radangle - math.pi/2 + -self.tumble_direction * unit * (math.pi*2) ), ".")
+	elseif self.turndirection ~= 0 then
+    	if self.speed >= 0 then
 			self.radangle = self.radangle + self.turndirection * self.turnspeed * dt
 		else
 			self.radangle = self.radangle + -1 * self.turndirection * self.turnspeed * dt
@@ -86,7 +106,9 @@ function update(self, dt)
     	go.set_rotation( vmath.quat_rotation_z( angle_to_rad(self.angle-SPRITE_ROTATION) ), ".")
     	--go.set_rotation( vmath.quat_rotation_z( self.radangle - math.pi*0.5, ".") )
 	end
+	
 	self.turndirection = 0
+	self.touching = {}
 	
     if self.debug then
        -- msg.post("@render:", "draw_line", {start_point = self.position, end_point = self.position + self.direction * self.speed, color = vmath.vector4(1,1,1,1)})
@@ -105,10 +127,10 @@ function on_message(self, message_id, message, sender)
     	self.turndirection = 1
     elseif message_id == constants.PLAYER_MESSAGE_RIGHT then
     	self.turndirection = -1
-    else
-    	print("message_id " .. tostring(message_id))
-		pprint(message)
-		pprint(sender)
-
+    elseif message_id == constants.PHYSICS_MESSAGE_CONTACT then 
+        --print("Message " .. tostring(message_id))
+        if message.group == constants.PHYSICS_GROUP_OIL then
+        	self.touching[constants.PHYSICS_GROUP_OIL] = message
+        end
     end
 end

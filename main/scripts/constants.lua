@@ -14,10 +14,15 @@ M.PLAYER_MESSAGE_RIGHT 		= hash("right")
 M.PLAYER_MESSAGE_BOOST 		= hash("boost")
 M.PLAYER_MESSAGE_SPIN 		= hash("spin")
 
+M.TIMER_TUMBLE		= 0.8
 
--- Put functions in this file to use them in several other scripts.
--- To get access to the functions, you need to put:
--- require "my_directory.my_file"
--- in any script using the functions.
+M.PHYSICS_MESSAGE_CONTACT	= hash("contact_point_response")
+
+M.PHYSICS_GROUP_PLAYER		= hash("player")
+M.PHYSICS_GROUP_WORLD		= hash("world")
+M.PHYSICS_GROUP_TRACK		= hash("track")
+M.PHYSICS_GROUP_OIL			= hash("oil")
+M.PHYSICS_GROUP_OBSTACLE	= hash("obstacle")
+M.PHYSICS_GROUP_BONUS		= hash("bonus")
 
 return M

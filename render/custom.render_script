@@ -1,4 +1,4 @@
-local constants = require("main/constants")
+local constants = require("main/scripts/constants")
 
 function init(self)
     self.tile_pred = render.predicate({"tile"})
