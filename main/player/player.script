@@ -71,10 +71,12 @@ function update(self, dt)
 	local display_width = 800
 	local display_height = 600
 	local camerapos = visual_position - vmath.vector3(display_width/4, display_height/4, 0)
-	go.set_position(camerapos, "/camera#camera")
+	go.set_position(camerapos, "/common/camera#camera")
 	
 	-- SPEED
-	self.speed = self.speed * self.enginebrake
+	if self.tumble_timer == 0 then 
+		self.speed = self.speed * self.enginebrake
+	end
 	if self.speed > self.maxspeed then
 		self.speed = self.maxspeed
 	elseif self.speed < self.maxspeed * -0.5 then

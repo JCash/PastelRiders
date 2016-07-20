@@ -19,29 +19,13 @@ instances {
     z: 1.0
   }
 }
-scale_along_z: 0
-embedded_instances {
-  id: "camera"
-  data: "components {\n"
-  "  id: \"camera\"\n"
-  "  component: \"/main/ingame.camera\"\n"
-  "  position {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "  }\n"
-  "  rotation {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "    w: 1.0\n"
-  "  }\n"
-  "}\n"
-  ""
+collection_instances {
+  id: "common"
+  collection: "/main/common.collection"
   position {
-    x: -156.18373
-    y: -96.47881
-    z: 0.5
+    x: 400.0
+    y: 320.0
+    z: 0.0
   }
   rotation {
     x: 0.0
@@ -55,6 +39,7 @@ embedded_instances {
     z: 1.0
   }
 }
+scale_along_z: 0
 embedded_instances {
   id: "level"
   data: "components {\n"

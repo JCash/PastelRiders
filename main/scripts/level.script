@@ -1,15 +1,23 @@
 local constants = require("main/scripts/constants")
 local playerinput = require("main/scripts/playerinput")
+local screenfade = require("main/scripts/screenfade")
+local debugutil = require("main/scripts/debugutil")
 
 local players = {}
 
 function init(self)
     msg.post(".", "acquire_input_focus")
-    msg.post("/camera#camera", "acquire_camera_focus")
+    msg.post("/common/camera#camera", "acquire_camera_focus")
     
 	playerinput.setup()
 	
     table.insert(players, go.get_id("/player1"))
+    
+    self.display_width = sys.get_config("display.width")
+    self.display_height = sys.get_config("display.height")
+    
+    screenfade.do_screen_fade_in(self.display_width, self.display_height, go.get_position(players[1]))
+	--msg.post("@render:", "disable_stencil_mask")
 end
 
 function final(self)
@@ -25,4 +33,6 @@ end
 function on_input(self, action_id, action)
 	local playerid = 1
 	playerinput.on_input(playerid, players[playerid], action_id, action)
+	
+	debugutil.on_input(self, action_id, action)
 end
