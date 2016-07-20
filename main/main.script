@@ -1,40 +1,12 @@
-local constants = require("main/constants")
+local constants = require("main/scripts/constants")
+local util = require("main/scripts/util")
 
 local player_positions = {}
 local players = {}
 
-local INPUT_KEY_UP = 1
-local INPUT_KEY_DOWN = 2
-local INPUT_KEY_LEFT = 3
-local INPUT_KEY_RIGHT = 4
-local player_input_keys = {}
 
 local recording = 0
 
--- Takes a 1 based array index, creates a zero based 2d tile coordinate
-local function index_to_coords(index, width)
-    local x = math.floor((index-1) % width)
-    local y = math.floor((index-1) / width)
-    return x, y
-end
-
--- Takes a zero based 2d tile coordinate, and the level width (tiles)
--- Returns a 1 based array index 
-local function coords_to_index(x, y, width)
-    return y * width + x + 1
-end
-
--- Takes a zero based 2d tile coordinate, returns a 2d screen coordinate
-local function coords_to_screen(x, y)
-    local scrx = constants.TILE_SIZE * x + constants.TILE_SIZE / 2
-    local scry = constants.TILE_SIZE * y + constants.TILE_SIZE / 2
-    return scrx, scry
-end
-
--- Takes a 2d screen coordinate, returns a zero based 2d tile coordinate
-local function screen_to_coords(x, y)
-    return math.floor(x / constants.TILE_SIZE), math.floor(y / constants.TILE_SIZE)
-end
 
 function init(self)
     msg.post(".", "acquire_input_focus")
@@ -58,18 +30,8 @@ end
 
 
 local function find_start_positions()
-	local x, y = coords_to_screen(2,9)
+	local x, y = util.coords_to_screen(2,9)
 	player_positions[1] = vmath.vector3(x, y, 0.2)
-end
-
-local function initplayer(playerid, pos)
-    players[playerid] = factory.create("#playerfactory", player_positions[playerid], vmath.quat_rotation_z(0), {}, vmath.vector3(1,1,1) )
-    
-    player_input_keys[playerid] = {}
-    player_input_keys[playerid][INPUT_KEY_UP] = hash("up")
-    player_input_keys[playerid][INPUT_KEY_DOWN] = hash("down")
-    player_input_keys[playerid][INPUT_KEY_LEFT] = hash("left")
-    player_input_keys[playerid][INPUT_KEY_RIGHT] = hash("right")
 end
 
 -- Implementation inspired by http://stackoverflow.com/a/1557247/468516
@@ -157,33 +119,16 @@ function on_message(self, message_id, message, sender)
 	if message_id == hash("proxy_loaded") then
         msg.post(sender, "init")
         msg.post(sender, "enable")
-        
-    	find_start_positions()
-    
-        go.delete_all(players)
-        players = {}
-        initplayer(1, vmath.vector3(constants.TILE_SIZE * 2 + constants.TILE_SIZE/2, constants.TILE_SIZE * 9 + constants.TILE_SIZE/2, 0.2) )
-        
-        -- focus camera on player
-        msg.post("/camerago#camera", "acquire_camera_focus")
 
-        do_screen_fade_in(self.display_width, self.display_height, player_positions[1])
+        --do_screen_fade_in(self.display_width, self.display_height, player_positions[1])
+		msg.post("@render:", "disable_stencil_mask")
     end
 end
 
 
 function on_input(self, action_id, action)
-	local playerid = 1
-    if action_id == player_input_keys[playerid][INPUT_KEY_UP] then
-    	msg.post(players[playerid], constants.PLAYER_MESSAGE_ACCELERATE)
-    elseif action_id == player_input_keys[playerid][INPUT_KEY_DOWN] then
-    	msg.post(players[playerid], constants.PLAYER_MESSAGE_BRAKE)
-    elseif action_id == player_input_keys[playerid][INPUT_KEY_LEFT] then
-    	msg.post(players[playerid], constants.PLAYER_MESSAGE_LEFT)
-    elseif action_id == player_input_keys[playerid][INPUT_KEY_RIGHT] then
-    	msg.post(players[playerid], constants.PLAYER_MESSAGE_RIGHT)
-    	
-    elseif action_id == hash("1") and action.pressed then
+    --print("main.on_input", action_id, action)
+    if action_id == hash("1") and action.pressed then
     	if recording == 0 then
     		print("RECORDING")
     		msg.post("@system:", "start_record", { file_name = "/Users/mawe/defold_rec.ivf" } )

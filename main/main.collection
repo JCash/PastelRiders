@@ -1,42 +1,7 @@
 name: "main"
 scale_along_z: 0
 embedded_instances {
-  id: "camerago"
-  data: "components {\n"
-  "  id: \"camera\"\n"
-  "  component: \"/main/ingame.camera\"\n"
-  "  position {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "  }\n"
-  "  rotation {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "    w: 1.0\n"
-  "  }\n"
-  "}\n"
-  ""
-  position {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-  }
-  rotation {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-  scale3 {
-    x: 1.0
-    y: 1.0
-    z: 1.0
-  }
-}
-embedded_instances {
-  id: "go"
+  id: "levels"
   data: "components {\n"
   "  id: \"script\"\n"
   "  component: \"/main/main.script\"\n"
@@ -53,9 +18,9 @@ embedded_instances {
   "  }\n"
   "}\n"
   "embedded_components {\n"
-  "  id: \"playerfactory\"\n"
-  "  type: \"factory\"\n"
-  "  data: \"prototype: \\\"/main/player.go\\\"\\n"
+  "  id: \"level01\"\n"
+  "  type: \"collectionproxy\"\n"
+  "  data: \"collection: \\\"/main/levels/level01.collection\\\"\\n"
   "\"\n"
   "  position {\n"
   "    x: 0.0\n"
@@ -73,43 +38,6 @@ embedded_instances {
   "  id: \"stencil_tile_factory\"\n"
   "  type: \"factory\"\n"
   "  data: \"prototype: \\\"/main/stencil_tile.go\\\"\\n"
-  "\"\n"
-  "  position {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "  }\n"
-  "  rotation {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "    w: 1.0\n"
-  "  }\n"
-  "}\n"
-  ""
-  position {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-  }
-  rotation {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-  scale3 {
-    x: 1.0
-    y: 1.0
-    z: 1.0
-  }
-}
-embedded_instances {
-  id: "levels"
-  data: "embedded_components {\n"
-  "  id: \"level01\"\n"
-  "  type: \"collectionproxy\"\n"
-  "  data: \"collection: \\\"/main/levels/level01.collection\\\"\\n"
   "\"\n"
   "  position {\n"
   "    x: 0.0\n"

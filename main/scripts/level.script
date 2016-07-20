@@ -1,0 +1,28 @@
+local constants = require("main/scripts/constants")
+local playerinput = require("main/scripts/playerinput")
+
+local players = {}
+
+function init(self)
+    msg.post(".", "acquire_input_focus")
+    msg.post("/camera#camera", "acquire_camera_focus")
+    
+	playerinput.setup()
+	
+    table.insert(players, go.get_id("/player1"))
+end
+
+function final(self)
+	msg.post(".", "release_input_focus")
+end
+
+function update(self, dt)
+end
+
+function on_message(self, message_id, message, sender)
+end
+
+function on_input(self, action_id, action)
+	local playerid = 1
+	playerinput.on_input(playerid, players[playerid], action_id, action)
+end

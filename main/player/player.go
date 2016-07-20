@@ -1,6 +1,6 @@
 components {
   id: "script"
-  component: "/main/player.script"
+  component: "/main/player/player.script"
   position {
     x: 0.0
     y: 0.0
@@ -24,6 +24,7 @@ embedded_components {
   "group: \"player\"\n"
   "mask: \"world\"\n"
   "mask: \"obstacle\"\n"
+  "mask: \"oil\"\n"
   "mask: \"track\"\n"
   "embedded_collision_shape {\n"
   "  shapes {\n"
@@ -73,7 +74,7 @@ embedded_components {
   position {
     x: 0.0
     y: 0.0
-    z: 0.0
+    z: 0.3
   }
   rotation {
     x: 0.0

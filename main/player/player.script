@@ -1,4 +1,4 @@
-local constants = require("main/constants")
+local constants = require("main/scripts/constants")
 local NUM_DIRECTIONS = 64
 local SPRITE_ROTATION = 16 -- since the sprite is directed in positive y, and not positive x
 
@@ -60,7 +60,7 @@ function update(self, dt)
 	local display_width = 800
 	local display_height = 600
 	local camerapos = visual_position - vmath.vector3(display_width/4, display_height/4, 0)
-	go.set_position(camerapos, "/camerago#camera")
+	go.set_position(camerapos, "/camera")
 	
 	self.speed = self.speed * self.enginebrake
 	if self.speed > self.maxspeed then
@@ -106,7 +106,9 @@ function on_message(self, message_id, message, sender)
     elseif message_id == constants.PLAYER_MESSAGE_RIGHT then
     	self.turndirection = -1
     else
-        print("Message " .. tostring(message_id))
-        
+    	print("message_id " .. tostring(message_id))
+		pprint(message)
+		pprint(sender)
+
     end
 end
