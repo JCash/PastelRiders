@@ -2,6 +2,8 @@ local constants = require("main/constants")
 local NUM_DIRECTIONS = 64
 local SPRITE_ROTATION = 16 -- since the sprite is directed in positive y, and not positive x
 
+go.property("debug", false)
+
 local function angle_to_rad(angle)
 	return (2.0 * math.pi * angle) / NUM_DIRECTIONS
 end
@@ -36,6 +38,8 @@ function init(self)
     self.radangle = angle_to_rad(self.angle)
     self.direction = get_direction_from_angle(self.angle)
     self.position = go.get_position(".")
+    
+    self.debug = true
 end
 
 
@@ -49,6 +53,7 @@ function update(self, dt)
 	self.position = self.position + self.speed * dt * self.direction
 	-- make sure we're aligned to pixels, for the tiles not to get messed up
 	local visual_position = vmath.vector3(round(self.position.x), round(self.position.y), self.position.z)
+	--local visual_position = self.position
 	go.set_position(visual_position, ".")
 	
 	-- CAMERA
@@ -82,11 +87,16 @@ function update(self, dt)
     	--go.set_rotation( vmath.quat_rotation_z( self.radangle - math.pi*0.5, ".") )
 	end
 	self.turndirection = 0
+	
+    if self.debug then
+       -- msg.post("@render:", "draw_line", {start_point = self.position, end_point = self.position + self.direction * self.speed, color = vmath.vector4(1,1,1,1)})
+    end
 end
 
 function on_message(self, message_id, message, sender)
     -- By sending input here, we're delaying it 1 frame
     -- But it's not that important for this game
+    
     if message_id == constants.PLAYER_MESSAGE_ACCELERATE then    
     	self.speed = self.speed + self.acceleration * self.acceleration_multiplier
     elseif message_id == constants.PLAYER_MESSAGE_BRAKE then
@@ -95,5 +105,8 @@ function on_message(self, message_id, message, sender)
     	self.turndirection = 1
     elseif message_id == constants.PLAYER_MESSAGE_RIGHT then
     	self.turndirection = -1
+    else
+        print("Message " .. tostring(message_id))
+        
     end
 end
