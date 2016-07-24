@@ -23,8 +23,8 @@ collection_instances {
   id: "common"
   collection: "/main/common.collection"
   position {
-    x: 400.0
-    y: 320.0
+    x: -154.00429
+    y: -32.753746
     z: 0.0
   }
   rotation {

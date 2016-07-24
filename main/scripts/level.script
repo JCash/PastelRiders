@@ -1,6 +1,8 @@
 local constants = require("main/scripts/constants")
 local playerinput = require("main/scripts/playerinput")
 local screenfade = require("main/scripts/screenfade")
+local waypoint = require("main/scripts/waypoint")
+local util = require("main/scripts/util")
 local debugutil = require("main/scripts/debugutil")
 
 local players = {}
@@ -16,8 +18,23 @@ function init(self)
     self.display_width = sys.get_config("display.width")
     self.display_height = sys.get_config("display.height")
     
-    screenfade.do_screen_fade_in(self.display_width, self.display_height, go.get_position(players[1]))
-	--msg.post("@render:", "disable_stencil_mask")
+    --screenfade.do_screen_fade_in(self.display_width, self.display_height, go.get_position(players[1]))
+	msg.post("@render:", "disable_stencil_mask")
+	
+	local pos = go.get_position(players[1])
+	local tile_pos_x, tile_pos_y = util.screen_to_coords(pos.x, pos.y)
+	self.waypoints = waypoint.find_route("#tilemap", "waypoints", {tile_pos_x+1, tile_pos_y+1}, {0, 1})
+	
+	local waypoints = {}
+	for _,wp in ipairs(self.waypoints) do
+		table.insert(waypoints, util.coords_to_screen_vector(wp[1]-1, wp[2]-1))
+	end
+	self.waypoints = waypoints
+	waypoint.set_waypoints(self.waypoints)
+	
+	msg.post(players[1], constants.LEVEL_MESSAGE_INIT)
+	
+	self.debug = true
 end
 
 function final(self)
@@ -25,6 +42,13 @@ function final(self)
 end
 
 function update(self, dt)
+	if self.debug then
+		for i = 1, #self.waypoints do
+			local wp1 = self.waypoints[i]
+			local wp2 = self.waypoints[i % #self.waypoints + 1]
+			msg.post("@render:", "draw_line", {start_point = wp1, end_point = wp2, color = vmath.vector4(1,1,1,1)})
+		end
+    end
 end
 
 function on_message(self, message_id, message, sender)

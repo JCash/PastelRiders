@@ -329,5 +329,14 @@ collision_groups: "obstacle"
 collision_groups: "oil"
 collision_groups: "track"
 collision_groups: "world"
-extrude_borders: 0
+animations {
+  id: "waypoint"
+  start_tile: 48
+  end_tile: 48
+  playback: PLAYBACK_ONCE_FORWARD
+  fps: 30
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+extrude_borders: 4
 inner_padding: 0

@@ -3,9 +3,12 @@ local M = {}
 
 M.TILE_SIZE = 32
 
+M.NUM_DIRECTIONS = 64
+
 M.GAME_STATE_SPLASH = 0
 M.GAME_STATE_INGAME = 1
 
+M.LEVEL_MESSAGE_INIT		= hash("level_init")
 
 M.PLAYER_MESSAGE_ACCELERATE = hash("accelerate")
 M.PLAYER_MESSAGE_BRAKE 		= hash("brake")
