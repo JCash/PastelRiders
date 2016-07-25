@@ -26,7 +26,11 @@ function M.create(parameters)
 		trackradius = 3 * 32 * 0.25, --3 * 32 * 0.5,
 		targetlookaheaddist = 64,--24,
 		
-		curve_point = nil
+		curve_point = nil,
+		
+		curve_lookahead = 200,
+		
+		pause = false
 	}
 end
 
@@ -36,9 +40,11 @@ function M.update(vehicle, dt)
 	
 	msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + vehicle.accumulated_force, color = vmath.vector4(0,1,0,1)})
 	
-	local acceleration = vehicle.accumulated_force * vehicle.oneovermass
-	vehicle.velocity = vehicle.velocity + acceleration * dt
-	vehicle.position = vehicle.position + vehicle.velocity * dt
+	if not vehicle.pause then
+		local acceleration = vehicle.accumulated_force * vehicle.oneovermass
+		vehicle.velocity = vehicle.velocity + acceleration * dt
+		vehicle.position = vehicle.position + vehicle.velocity * dt
+	end
 	vehicle.accumulated_force = vmath.vector3(0,0,0)
 end
 
@@ -56,6 +62,22 @@ function M.set_waypoints(vehicle, waypoints, startindex)
 	vehicle.waypoint = vehicle.waypoints[vehicle.waypointindex]
 end
 
+local function get_previous_index(vehicle, index)
+	local index = index - 1
+	if index < 1 then
+		index = #vehicle.waypoints
+	end
+	return index
+end
+
+local function get_next_index(vehicle, index)
+	local index = index + 1
+	if index > #vehicle.waypoints then
+		index = 1
+	end
+	return index
+end
+
 local function get_curviness(vehicle, point_on_path, distance_ahead)
 	local wpindex = vehicle.waypointindex
 	local previousdir = vehicle.waypoints[wpindex] - point_on_path
@@ -71,10 +93,7 @@ local function get_curviness(vehicle, point_on_path, distance_ahead)
 		distance_ahead = distance_ahead - segmentlength
 	else
 		-- if we're too close, we need to use the segment as a dir
-		local wpindexprev = wpindex - 1
-		if wpindexprev < 1 then
-			wpindexprev = #vehicle.waypoints
-		end
+		local wpindexprev = get_previous_index(vehicle, wpindex)
 		previousdir = vehicle.waypoints[wpindex] - vehicle.waypoints[wpindexprev]
 		segmentlength = vmath.length(previousdir)
 	end
@@ -85,10 +104,7 @@ local function get_curviness(vehicle, point_on_path, distance_ahead)
 	
 	local angle = 0
 	while distance_ahead > 0 do
-		wpindex = wpindex + 1
-		if wpindex > #vehicle.waypoints then
-			wpindex = 1
-		end
+		wpindex = get_next_index(vehicle, wpindex)
 		local segment = vehicle.waypoints[wpindex] - point_on_path
 		segmentlength = vmath.length(segment)
 		segment = segment * (1/segmentlength)
@@ -138,47 +154,31 @@ function M.update_target(vehicle)
 		if index > #vehicle.waypoints then
 			index = 1
 		end
-		local previndex = index - 1
-		if previndex < 1 then
-			previndex = #vehicle.waypoints
-		end
-		
-		local v = predicted_pos - vehicle.waypoints[previndex]
-		pathsegment = vehicle.waypoints[index] - vehicle.waypoints[previndex]
-		local pathsegmentlength = vmath.length(pathsegment)
-		pathsegment = pathsegment * (1/pathsegmentlength)
-		
-		-- project the position onto the track edge
-		local dot = vmath.dot(v, pathsegment) / pathsegmentlength
-		
-		local projected = nil
-		if dot >= 1 then
-			projected = vehicle.waypoints[index]
-		elseif dot <= 0 then
-			projected = vehicle.waypoints[previndex]
-		else
-			projected = vehicle.waypoints[previndex] + pathsegment * pathsegmentlength * dot
-		end
+		local previndex = get_previous_index(vehicle, index)
 
+		local projected = util.project_point_to_line_segment(predicted_pos, vehicle.waypoints[previndex], vehicle.waypoints[index])
 		local distance_from_segment = vmath.length(projected - predicted_pos)
+		
+--msg.post("@render:", "draw_line", {start_point = projected, end_point = projected+vmath.vector3(10,10,0), color = vmath.vector4(0,0,1,1)})
 		
 		if distance_from_segment < closestdist then
 			closestdist = distance_from_segment 
 			
-			--if distance_from_segment > vehicle.trackradius then
-			--	msg.post("@render:", "draw_line", {start_point = predicted_pos, end_point = projected, color = vmath.vector4(1, 0, 0,1)})
-			--else
-			--	msg.post("@render:", "draw_line", {start_point = predicted_pos, end_point = projected, color = vmath.vector4(1, 1,0,1)})
-			--end
+			if distance_from_segment > vehicle.trackradius then
+				msg.post("@render:", "draw_line", {start_point = predicted_pos, end_point = projected, color = vmath.vector4(1, 0, 0,1)})
+			else
+				msg.post("@render:", "draw_line", {start_point = predicted_pos, end_point = projected, color = vmath.vector4(1, 1,0,1)})
+			end
 			
 			newindex = index
 			newindexprev = previndex
 
 msg.post("@render:", "draw_line", {start_point = predicted_pos, end_point = predicted_pos + vmath.vector3(10, 10, 0), color = vmath.vector4(0, 0,1,1)})	
-msg.post("@render:", "draw_line", {start_point = projected, end_point = projected + vmath.vector3(10, 10, 0), color = vmath.vector4(1, 0,0,1)})
-msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = projected, color = vmath.vector4(1, 0,0,1)})
-				
+msg.post("@render:", "draw_line", {start_point = projected, end_point = projected + vmath.vector3(10, 10, 0), color = vmath.vector4(1, 1,0,1)})
+msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = projected, color = vmath.vector4(1, 0,1,1)})
+			
 			if distance_from_segment > vehicle.trackradius then
+				local pathsegment = vmath.normalize(vehicle.waypoints[index] - vehicle.waypoints[previndex])
 				target = projected + pathsegment * vehicle.targetlookaheaddist
 			else
 				target = vehicle.waypoints[index]
@@ -191,7 +191,7 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
 
 	vehicle.target = target
 
-	local curviness = get_curviness(vehicle, vehicle.position, 200)
+	local curviness = get_curviness(vehicle, vehicle.position, vehicle.curve_lookahead)
 	local curviness_unit = curviness / 180
 	if curviness_unit > 1 then
 		curviness_unit = 1
@@ -231,9 +231,17 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
 		end
 	end
 	local slowdown = 0.15 + 0.85 * vel_curve_dot
+	local velocity = vmath.length(vehicle.velocity)
+	if velocity > 0 then
+		local brake = vehicle.velocity * -(1 - vel_curve_dot)
+		print("brake", brake)
+		print("vel_curve_dot", vel_curve_dot)
+		
+		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,0,1)})
 	
-	print("slowdown", slowdown)
-	
+		M.add_force(vehicle, brake)
+	end
+		
 	--local proximity = 1
 	--local wpproximity = vmath.length(vehicle.waypoints[vehicle.waypointindex] - vehicle.position)
 	--if wpproximity < vehicle.targetradius then
@@ -242,7 +250,7 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
 	--end
 	
 	
-	desired = desired * (1 / length) * slowdown * vehicle.maxspeed
+	desired = desired * (1 / length) * vehicle.maxspeed
 	
 	local steer = desired - vehicle.velocity
 	local len = vmath.length(steer)
@@ -256,7 +264,7 @@ end
 function M.debug(vehicle)
 
 	msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + vehicle.velocity, color = vmath.vector4(1,1,1,1)})
-			
+	
 	msg.post("@render:", "draw_line", {start_point = vehicle.waypoints[vehicle.waypointindex] + vmath.vector3(2,2,0), end_point = vehicle.waypoints[vehicle.waypointindexprev] + vmath.vector3(-2,-2,0), color = vmath.vector4(0, 1,1,1)})
 	
 	--msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.waypoints[vehicle.waypointindex], color = vmath.vector4(0,1,1,1)})

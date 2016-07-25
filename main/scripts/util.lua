@@ -63,5 +63,22 @@ function M.get_direction_from_rad(rad)
 	return vmath.vector3(math.cos(rad), math.sin(rad), 0)
 end
 
+function M.project_point_to_line_segment(p, a, b)
+	local v = p - a
+	local linesegment = b - a
+	local linesegmentlength = vmath.length(linesegment)
+	local dot = vmath.project(v, linesegment)
+	
+	local projected = nil
+	if dot >= 1 then
+		projected = b
+	elseif dot <= 0 then
+		projected = a
+	else
+		projected = a + linesegment * dot
+	end
+	return projected
+end
+
 
 return M

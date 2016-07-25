@@ -19,14 +19,18 @@ function M.setup()
 end
 
 function M.on_input(playerid, player, action_id, action)
+
     if action_id == player_input_keys[playerid][M.INPUT_KEY_UP] then
-    	msg.post(player, constants.PLAYER_MESSAGE_ACCELERATE)
+    	msg.post(player, constants.PLAYER_MESSAGE_ACCELERATE, action)
     elseif action_id == player_input_keys[playerid][M.INPUT_KEY_DOWN] then
-    	msg.post(player, constants.PLAYER_MESSAGE_BRAKE)
+    	msg.post(player, constants.PLAYER_MESSAGE_BRAKE, action)
     elseif action_id == player_input_keys[playerid][M.INPUT_KEY_LEFT] then
-    	msg.post(player, constants.PLAYER_MESSAGE_LEFT)
+    	msg.post(player, constants.PLAYER_MESSAGE_LEFT, action)
     elseif action_id == player_input_keys[playerid][M.INPUT_KEY_RIGHT] then
-    	msg.post(player, constants.PLAYER_MESSAGE_RIGHT)
+    	msg.post(player, constants.PLAYER_MESSAGE_RIGHT, action)
+    	
+    elseif action_id == hash("space") and action.pressed then
+    	msg.post(player, constants.PLAYER_MESSAGE_PAUSE, action)
     end
 end
 

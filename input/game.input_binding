@@ -22,4 +22,8 @@ key_trigger {
   input: KEY_1
   action: "1"
 }
+key_trigger {
+  input: KEY_0
+  action: "0"
+}
 

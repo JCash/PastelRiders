@@ -45,6 +45,7 @@ end
 function update(self, dt)
 
 	-- UPDATE
+	self.vehicle.pause = self.pause
 	autonomous.update(self.vehicle, dt)
 	
 	go.set_position(self.vehicle.position, ".")
@@ -146,6 +147,9 @@ function on_message(self, message_id, message, sender)
         return
     end
     
+	if message_id == constants.PLAYER_MESSAGE_PAUSE and message.pressed then
+    	self.pause = not self.pause
+    end
     if message_id == constants.PLAYER_MESSAGE_ACCELERATE then    
     	self.speed = self.speed + self.acceleration * self.acceleration_multiplier
     elseif message_id == constants.PLAYER_MESSAGE_BRAKE then

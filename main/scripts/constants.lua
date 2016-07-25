@@ -17,6 +17,8 @@ M.PLAYER_MESSAGE_RIGHT 		= hash("right")
 M.PLAYER_MESSAGE_BOOST 		= hash("boost")
 M.PLAYER_MESSAGE_SPIN 		= hash("spin")
 
+M.PLAYER_MESSAGE_PAUSE		= hash("pause")
+
 M.TIMER_TUMBLE		= 0.8
 
 M.PHYSICS_MESSAGE_CONTACT	= hash("contact_point_response")
