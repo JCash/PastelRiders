@@ -41,6 +41,15 @@ function M.angle_to_rad(angle)
 	return (2.0 * math.pi * angle) / constants.NUM_DIRECTIONS
 end
 
+function M.deg_to_rad(deg)
+	return deg * (math.pi/180)
+end
+
+function M.rad_to_deg(rad)
+	return rad * (180/math.pi)
+end
+
+
 function M.rad_to_angle(rad)
 	return math.floor((rad * constants.NUM_DIRECTIONS) / (2.0 * math.pi))
 end
