@@ -17,13 +17,10 @@ function M.create(parameters)
 		accumulated_force = vmath.vector3(0,0,0),
 		maxforce = 100000,
 		
-		waypoint = nil,
 		waypoints = nil,
 		waypointindex = 0,
-		pathedge = nil,
 		
-		targetradius = 100,
-		trackradius = 3 * 32 * 0.25, --3 * 32 * 0.5,
+		trackradius = 3 * 32 * 0.5 - 10, --3 * 32 * 0.5,
 		targetlookaheaddist = 64,--24,
 		
 		curve_point = nil,
@@ -211,7 +208,6 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
 	
 	local length = vmath.length(desired)
 	
-	--local slowdown = (1.0 - math.abs(curviness_unit)) * 0.85 + 0.15
 	print("vehicle.curve_point", vehicle.curve_point)
 	local vellength = vmath.length(vehicle.velocity)
 	local vel_curve_dot = 1
@@ -230,25 +226,17 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
 			end
 		end
 	end
-	local slowdown = 0.15 + 0.85 * vel_curve_dot
+	
 	local velocity = vmath.length(vehicle.velocity)
 	if velocity > 0 then
-		local brake = vehicle.velocity * -(1 - vel_curve_dot)
-		print("brake", brake)
-		print("vel_curve_dot", vel_curve_dot)
+		local brake = vehicle.velocity * -(1 - vel_curve_dot*vel_curve_dot*vel_curve_dot)
+		--print("brake", brake)
+		--print("vel_curve_dot", vel_curve_dot)
 		
 		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,0,1)})
 	
 		M.add_force(vehicle, brake)
 	end
-		
-	--local proximity = 1
-	--local wpproximity = vmath.length(vehicle.waypoints[vehicle.waypointindex] - vehicle.position)
-	--if wpproximity < vehicle.targetradius then
-		--proximity = 0.25 + wpproximity / vehicle.targetradius
-		--print("proximity", proximity)
-	--end
-	
 	
 	desired = desired * (1 / length) * vehicle.maxspeed
 	

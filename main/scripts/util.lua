@@ -63,6 +63,21 @@ function M.get_direction_from_rad(rad)
 	return vmath.vector3(math.cos(rad), math.sin(rad), 0)
 end
 
+function M.clamp(a, b, v)
+	if v < a then
+		return a
+	elseif v > b then
+		return b
+	else
+		return b
+	end
+end
+
+function M.scale(v, a1, b1, a2, b2)
+	local u = (v - a1) / (b1 - a1)
+	return a2 + u * (b2 - a2)
+end
+
 function M.project_point_to_line_segment(p, a, b)
 	local v = p - a
 	local linesegment = b - a
