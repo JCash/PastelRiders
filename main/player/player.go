@@ -27,6 +27,7 @@ embedded_components {
   "mask: \"oil\"\n"
   "mask: \"track\"\n"
   "mask: \"bonus\"\n"
+  "mask: \"finishline\"\n"
   "embedded_collision_shape {\n"
   "  shapes {\n"
   "    shape_type: TYPE_BOX\n"

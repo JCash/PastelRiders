@@ -22,6 +22,7 @@ M.PLAYER_MESSAGE_PAUSE		= hash("pause")
 M.TIMER_TUMBLE		= 0.8
 
 M.PHYSICS_MESSAGE_CONTACT	= hash("contact_point_response")
+M.PHYSICS_MESSAGE_COLLISION	= hash("collision_response")
 
 M.PHYSICS_GROUP_PLAYER		= hash("player")
 M.PHYSICS_GROUP_WORLD		= hash("world")
@@ -29,5 +30,6 @@ M.PHYSICS_GROUP_TRACK		= hash("track")
 M.PHYSICS_GROUP_OIL			= hash("oil")
 M.PHYSICS_GROUP_OBSTACLE	= hash("obstacle")
 M.PHYSICS_GROUP_BONUS		= hash("bonus")
+M.PHYSICS_GROUP_FINISH		= hash("finishline")
 
 return M
