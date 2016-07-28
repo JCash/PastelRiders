@@ -31,7 +31,7 @@ M.PHYSICS_GROUP_PLAYER      = hash("player")
 M.PHYSICS_GROUP_WORLD       = hash("world")
 M.PHYSICS_GROUP_TRACK       = hash("track")
 M.PHYSICS_GROUP_OIL         = hash("oil")
-M.PHYSICS_GROUP_OBSTACLE	= hash("obstacle")
+M.PHYSICS_GROUP_OBSTACLE    = hash("obstacle")
 M.PHYSICS_GROUP_BONUS       = hash("bonus")
 M.PHYSICS_GROUP_FINISH      = hash("finishline")
 

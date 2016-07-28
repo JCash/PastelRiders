@@ -98,8 +98,8 @@ end
 function M.format_time(t)
     local minutes = math.floor(t / 60)
     local seconds = math.floor(t % 60)
-    local fraction = t - seconds
-    return string.format("%2d:%02d:%02d", minutes, seconds, fraction*100)
+    local hundreds = math.floor((t - seconds)*100 % 100)
+    return string.format("%2d:%02d:%02d", minutes, seconds, hundreds)
 end
 
 return M

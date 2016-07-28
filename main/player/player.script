@@ -56,9 +56,9 @@ function update(self, dt)
 	
 	
 	-- ROTATION
-	self.direction = vmath.normalize(self.vehicle.velocity)
+	self.direction = self.vehicle.direction
 	local rotation = vmath.quat_from_to(vmath.vector3(0,1,0), self.direction)
-	go.set_rotation( rotation, ".")
+	go.set_rotation(rotation, ".")
 	
 	
 	-- CAMERA
