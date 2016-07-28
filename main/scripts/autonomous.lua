@@ -26,7 +26,7 @@ function M.create(parameters)
 		
 		curve_point = nil,
 		
-		curve_lookahead = 64,
+		curve_lookahead = 128,
 		
 		pause = false
 	}
@@ -36,8 +36,6 @@ end
 function M.update(vehicle, dt)
     M.update_waypoint_index(vehicle)
 	M.update_target(vehicle)
-	
-	msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + vehicle.accumulated_force, color = vmath.vector4(0,1,0,1)})
 	
 	if not vehicle.pause then
 		local acceleration = vehicle.accumulated_force * vehicle.oneovermass
@@ -83,7 +81,6 @@ local function get_next_index(waypoints, index)
 end
 
 -- gets a point on the path, given a distance, relative to the start position (which should be on the path)
-
 local function get_curve_point(startposition, startindex, waypoints, distance)
     while distance > 0 do
         local segment = waypoints[startindex] - startposition
@@ -99,6 +96,21 @@ local function get_curve_point(startposition, startindex, waypoints, distance)
         startindex = get_next_index(waypoints, startindex)
     end
     return startposition
+end
+
+local function get_curviness(waypoints, index, distance)
+	local pos = waypoints[index]
+	local curve_point = get_curve_point(pos, index, waypoints, distance)
+	local segment = vmath.normalize(pos - waypoints[get_previous_index(waypoints, index)])
+	local dir = curve_point - pos
+	local normal = vmath.vector3(-segment.y, segment.x, 0)
+	local dot = vmath.dot(segment, vmath.normalize(dir))
+
+	if vmath.dot(normal, dir) >= 0 then
+		return math.acos(dot)
+	else
+		return -math.acos(dot)
+	end
 end
 
 function M.get_projected_position(vehicle)
@@ -143,22 +155,37 @@ function M.update_target(vehicle)
     local projected_position = M.get_projected_position(vehicle)
     
 	vehicle.curve_point = get_curve_point(projected_position, vehicle.waypointindex, vehicle.waypoints, vehicle.curve_lookahead)
-	local diff = vehicle.curve_point - vehicle.position
-	local curviness = math.acos( vmath.dot( vmath.normalize(diff), vehicle.direction ) )
-	
-    local curviness_unit = curviness / 180
-    curviness_unit = util.clamp(-1, 1, curviness_unit)
+	--local diff = vehicle.curve_point - vehicle.position
+	--local curviness = math.acos( vmath.dot( vmath.normalize(diff), vehicle.direction ) )
+    --local curviness_unit = curviness / 180
+    --curviness_unit = util.clamp(-1, 1, curviness_unit)
 
-    local distance_from_segment = vmath.length_sqr( projected_position - vehicle.position )
+    local distance_from_segment = vmath.length( projected_position - vehicle.position ) / vehicle.trackradius
+    distance_from_segment = math.max(distance_from_segment, 1)
     if distance_from_segment > vehicle.trackradius*vehicle.trackradius then
-        local pathsegment = vmath.normalize(vehicle.waypoints[vehicle.waypointindex] - vehicle.waypoints[vehicle.waypointindexprev])
-        vehicle.target = projected_position + pathsegment * vehicle.targetlookaheaddist
+        --local pathsegment = vmath.normalize(vehicle.waypoints[vehicle.waypointindex] - vehicle.waypoints[vehicle.waypointindexprev])
+        --vehicle.target = projected_position + pathsegment * vehicle.targetlookaheaddist
         
-        --vehicle.target = vehicle.curve_point
+        vehicle.target = vehicle.curve_point
     else
-        vehicle.target = vehicle.waypoints[vehicle.waypointindex]
+        --vehicle.target = vehicle.waypoints[vehicle.waypointindex]
+        vehicle.target = vehicle.curve_point
     end
-
+    
+    local waypoint_curviness = get_curviness(vehicle.waypoints, vehicle.waypointindex, 100)
+    local waypoint_segment = vehicle.waypoints[vehicle.waypointindex] - vehicle.waypoints[vehicle.waypointindexprev]
+    local waypoint_normal = vmath.normalize(waypoint_segment)
+    waypoint_normal = vmath.vector3(-waypoint_normal.y, waypoint_normal.x, 0)
+    
+	--print("waypoint_curviness", waypoint_curviness, math.deg(waypoint_curviness))
+    --waypoint_curviness = util.scale(waypoint_curviness, -math.pi/4, math.pi/4, -1, 1)
+    waypoint_curviness = util.clamp(-math.pi/2, math.pi/2, waypoint_curviness) / (math.pi/2)
+    
+    vehicle.target = vehicle.curve_point - waypoint_normal * waypoint_curviness * vehicle.trackradius * math.min(1, distance_from_segment)
+    --waypoint_curviness = util.scale(waypoint_curviness,  -1, 1, -math.pi/2, math.pi/2)
+    --print("waypoint_curviness", waypoint_curviness, math.deg(waypoint_curviness))
+	
+	--print("waypoint_curviness", math.deg(math.acos(waypoint_curviness)))
 
     --vehicle.target = vehicle.curve_point
     
@@ -186,6 +213,8 @@ function M.update_target(vehicle)
 		end
 	end
 	
+	--vel_curve_dot = waypoint_curviness
+	
 	local velocity = vmath.length(vehicle.velocity)
 	if velocity > 0 then
 		local brake = vehicle.velocity * -(1 - vel_curve_dot)
@@ -210,6 +239,8 @@ end
 
 function M.debug(vehicle)
 
+	msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + vehicle.accumulated_force, color = vmath.vector4(0,1,0,1)})
+	
 
     msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.target, color = vmath.vector4(0.5,0.5,0.5,1)})
     

@@ -69,7 +69,7 @@ function M.clamp(a, b, v)
 	elseif v > b then
 		return b
 	else
-		return b
+		return v
 	end
 end
 
