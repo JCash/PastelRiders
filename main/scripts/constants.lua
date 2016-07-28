@@ -8,16 +8,17 @@ M.NUM_DIRECTIONS = 64
 M.GAME_STATE_SPLASH = 0
 M.GAME_STATE_INGAME = 1
 
-M.LEVEL_MESSAGE_INIT		= hash("level_init")
+M.LEVEL_MESSAGE_INIT        = hash("level_init")
+M.LEVEL_MESSAGE_TIME        = hash("level_time")
 
 M.PLAYER_MESSAGE_ACCELERATE = hash("accelerate")
-M.PLAYER_MESSAGE_BRAKE 		= hash("brake")
-M.PLAYER_MESSAGE_LEFT 		= hash("left")
-M.PLAYER_MESSAGE_RIGHT 		= hash("right")
-M.PLAYER_MESSAGE_BOOST 		= hash("boost")
-M.PLAYER_MESSAGE_SPIN 		= hash("spin")
+M.PLAYER_MESSAGE_BRAKE      = hash("brake")
+M.PLAYER_MESSAGE_LEFT       = hash("left")
+M.PLAYER_MESSAGE_RIGHT      = hash("right")
+M.PLAYER_MESSAGE_BOOST      = hash("boost")
+M.PLAYER_MESSAGE_SPIN       = hash("spin")
 
-M.PLAYER_MESSAGE_PAUSE		= hash("pause")
+M.PLAYER_MESSAGE_PAUSE      = hash("pause")
 
 M.TIMER_TUMBLE		= 0.8
 

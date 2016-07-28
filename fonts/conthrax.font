@@ -1,0 +1,4 @@
+font: "/fonts/conthrax-sb.ttf"
+material: "/builtins/fonts/font-df.material"
+size: 16
+output_format: TYPE_DISTANCE_FIELD

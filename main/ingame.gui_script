@@ -1,0 +1,18 @@
+
+function init(self)
+    self.level_time = 0
+end
+
+function final(self)
+    -- Add finalization code here
+    -- Remove this function if not needed
+end
+
+function update(self, dt)
+end
+
+function on_message(self, message_id, message, sender)
+    if message_id == constants.LEVEL_MESSAGE_INIT then
+        self.level_time = 0
+    end
+end
