@@ -1,24 +1,32 @@
 local constants = require("main/scripts/constants")
+local juicy = require("main/scripts/juicy")
 local util = require("main/scripts/util")
 
 function init(self)
-    self.level_time = 0
-    print(msg.url())
-end
-
-function final(self)
 end
 
 function update(self, dt)
 end
 
+
 function on_message(self, message_id, message, sender)
     if message_id == constants.LEVEL_MESSAGE_INIT then
-        self.level_time = 0
+        
         
     elseif message_id == constants.LEVEL_MESSAGE_PLAYER_TIME then
-        local playerid = message.player
-        local node = gui.get_node("lap")
+        local pid = tostring(message.playerid)
+        local node = gui.get_node("lap" .. pid)
         gui.set_text(node, util.format_time(message.lap_time))
+
+    elseif message_id == constants.LEVEL_MESSAGE_LAP_TIME then
+        local pid = tostring(message.playerid)
+        
+        local lapnumbernode = gui.get_node("lap_number" .. pid)
+        gui.set_text(lapnumbernode, tostring(message.lap))
+        
+        local node = gui.get_node("lap" .. pid)
+        juicy.bounce_text(node, 0.5)
+        
+        
     end
 end

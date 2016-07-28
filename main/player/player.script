@@ -7,7 +7,7 @@ local SPRITE_ROTATION = 16 -- since the sprite is directed in positive y, and no
 
 go.property("ai", false)
 go.property("debug", false)
-
+go.property("playerid", 1)
 
 
 
@@ -74,7 +74,7 @@ function update(self, dt)
 	
 	self.lap_time = self.lap_time + dt
 	self.total_time = self.total_time + dt
-	msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { player = 1, lap_time = self.lap_time, total_time = self.total_time } )
+	msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = 1, lap = self.lap, lap_time = self.lap_time, total_time = self.total_time } )
 end
 
 function update2(self, dt)
@@ -173,11 +173,13 @@ function on_message(self, message_id, message, sender)
         	--print("Message " .. tostring(message_id))
         	--pprint(message)
         end
-    elseif message_id == constants.PHYSICS_MESSAGE_COLLISION then
+    elseif message_id == constants.PHYSICS_MESSAGE_TRIGGER and message.enter then
         if message.group == constants.PHYSICS_GROUP_FINISH then
-        	self.lap = self.lap + 1
-        	
-        	print("LAP " .. tostring(self.lap))
+	        	self.lap = self.lap + 1
+	        	if self.lap > 1 then
+		        	print("LAP " .. tostring(self.lap))
+	            msg.post("/common/common#gui", constants.LEVEL_MESSAGE_LAP_TIME, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time } )
+	        end
         end
     elseif message_id == constants.LEVEL_MESSAGE_INIT then
     	autonomous.set_waypoints(self.vehicle, waypoint.get_waypoints(), 1)

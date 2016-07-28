@@ -245,7 +245,7 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
     local curviness_unit = curviness / 180
     curviness_unit = util.clamp(-1, 1, curviness_unit)
     
-	print("curviness", math.deg(curviness), curviness_unit)
+	--print("curviness", math.deg(curviness), curviness_unit)
 
 	--local desired = vehicle.target - vehicle.position	
 	--local offset_normal = vmath.normalize(vmath.vector3(-desired.y, desired.x, 0))
@@ -257,7 +257,7 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
 	
 	local length = vmath.length(desired)
 	
-	print("vehicle.curve_point", vehicle.curve_point)
+	--print("vehicle.curve_point", vehicle.curve_point)
 	local vellength = vmath.length(vehicle.velocity)
 	local vel_curve_dot = 1
 	if vellength > 0 then
@@ -265,10 +265,10 @@ msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = p
 		local cpdir = vehicle.curve_point - vehicle.position
 		local cpdirlength = vmath.length(cpdir)
 		if cpdirlength > 0 then
-			print("dir", dir)
-			print("cpdir", cpdir)
-			print("vehicle.curve_point", vehicle.curve_point)
-			print("vehicle.position", vehicle.position)
+			--print("dir", dir)
+			--print("cpdir", cpdir)
+			--print("vehicle.curve_point", vehicle.curve_point)
+			--print("vehicle.position", vehicle.position)
 			vel_curve_dot = vmath.dot(dir, cpdir * (1/cpdirlength))
 			if vel_curve_dot < 0 then
 				vel_curve_dot = 0
