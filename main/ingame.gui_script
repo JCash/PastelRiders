@@ -1,11 +1,12 @@
+local constants = require("main/scripts/constants")
+local util = require("main/scripts/util")
 
 function init(self)
     self.level_time = 0
+    print(msg.url())
 end
 
 function final(self)
-    -- Add finalization code here
-    -- Remove this function if not needed
 end
 
 function update(self, dt)
@@ -14,5 +15,10 @@ end
 function on_message(self, message_id, message, sender)
     if message_id == constants.LEVEL_MESSAGE_INIT then
         self.level_time = 0
+        
+    elseif message_id == constants.LEVEL_MESSAGE_PLAYER_TIME then
+        local playerid = message.player
+        local node = gui.get_node("lap")
+        gui.set_text(node, util.format_time(message.lap_time))
     end
 end

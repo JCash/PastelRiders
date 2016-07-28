@@ -39,8 +39,10 @@ function init(self)
     
     self.vehicle = autonomous.create({position = self.position, maxspeed = self.maxspeed, radius = 32})
     self.lap = 0
+    self.lap_time = 0
+    self.total_time = 0
     
-    self.waypointindex = 0    
+    self.waypointindex = 0
 end
 
 function update(self, dt)
@@ -69,6 +71,10 @@ function update(self, dt)
 	if self.debug then
 		autonomous.debug(self.vehicle)
 	end
+	
+	self.lap_time = self.lap_time + dt
+	self.total_time = self.total_time + dt
+	msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { player = 1, lap_time = self.lap_time, total_time = self.total_time } )
 end
 
 function update2(self, dt)

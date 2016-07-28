@@ -1,4 +1,4 @@
-script: ""
+script: "/main/ingame.gui_script"
 fonts {
   name: "conthrax"
   font: "/fonts/conthrax.font"

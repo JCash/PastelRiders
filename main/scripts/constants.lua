@@ -9,7 +9,7 @@ M.GAME_STATE_SPLASH = 0
 M.GAME_STATE_INGAME = 1
 
 M.LEVEL_MESSAGE_INIT        = hash("level_init")
-M.LEVEL_MESSAGE_TIME        = hash("level_time")
+M.LEVEL_MESSAGE_PLAYER_TIME = hash("player_time")
 
 M.PLAYER_MESSAGE_ACCELERATE = hash("accelerate")
 M.PLAYER_MESSAGE_BRAKE      = hash("brake")

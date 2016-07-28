@@ -95,5 +95,12 @@ function M.project_point_to_line_segment(p, a, b)
 	return projected
 end
 
+function M.format_time(t)
+    local minutes = math.floor(t / 60)
+    local seconds = math.floor(t)
+    local fraction = t - seconds
+    return string.format("%2d:%02d:%02d", minutes, seconds, fraction*100)
+end
 
 return M
+
