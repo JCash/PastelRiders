@@ -38,6 +38,7 @@ function init(self)
     self.debug = true
     
     self.vehicle = autonomous.create({position = self.position, maxspeed = self.maxspeed, radius = 32})
+    self.lap = 0
     
     self.waypointindex = 0    
 end
@@ -165,6 +166,12 @@ function on_message(self, message_id, message, sender)
         elseif message.group == constants.PHYSICS_GROUP_TRACK then
         	--print("Message " .. tostring(message_id))
         	--pprint(message)
+        end
+    elseif message_id == constants.PHYSICS_MESSAGE_COLLISION then
+        if message.group == constants.PHYSICS_GROUP_FINISH then
+        	self.lap = self.lap + 1
+        	
+        	print("LAP " .. tostring(self.lap))
         end
     elseif message_id == constants.LEVEL_MESSAGE_INIT then
     	autonomous.set_waypoints(self.vehicle, waypoint.get_waypoints(), 1)
