@@ -162,16 +162,13 @@ function M.update_target(vehicle)
     
     local distance_from_segment = vmath.length( projected_position - vehicle.position ) / vehicle.trackradius
     
-    local sliding_curve_point = vehicle.curve_point
+    local sliding_curve_point = vehicle.curve_point2
     if distance_from_segment > 1 then
         --local pathsegment = vmath.normalize(vehicle.waypoints[vehicle.waypointindex] - vehicle.waypoints[vehicle.waypointindexprev])
         --vehicle.target = projected_position + pathsegment * vehicle.targetlookaheaddist
         
         local scale = math.min(distance_from_segment, 2) - 1
-        sliding_curve_point = vehicle.curve_point + (projected_position - vehicle.curve_point) * scale
-    else
-        --vehicle.target = vehicle.waypoints[vehicle.waypointindex]
-        --vehicle.target = vehicle.curve_point
+        sliding_curve_point = vehicle.curve_point + (vehicle.curve_point - vehicle.curve_point2) * scale
     end
     
     local waypoint_curviness = get_curviness(vehicle.waypoints, vehicle.waypointindex, 100)
