@@ -73,9 +73,9 @@ function M.clamp(a, b, v)
 	end
 end
 
-function M.scale(v, a1, b1, a2, b2)
-	local u = (v - a1) / (b1 - a1)
-	return a2 + u * (b2 - a2)
+function M.scale(v, a1, a2, b1, b2)
+	local u = (v + b1) / (b2 - b1)
+	return a2 + u * (a2 - a1)
 end
 
 function M.project_point_to_line_segment(p, a, b)
