@@ -20,18 +20,86 @@ function M.create(parameters)
 		
 		waypoints = nil,
 		waypointindex = 0,
+		waypointindexprev = 0,
 		
-		trackradius = 3 * 32 * 0.5 - 10, --3 * 32 * 0.5,
+		trackradius = 3 * 32 * 0.5 - 10, --3 * 32 * 0.5,s
 		targetlookaheaddist = 128,--24,
 		
 		curve_point = nil,
 		
-		curve_lookahead = 128,
+		curve_lookahead = 160,
 		
 		pause = false
 	}
 end
 
+local function get_previous_index(waypoints, index)
+	local index = index - 1
+	if index < 1 then
+		index = #waypoints
+	end
+	return index
+end
+
+local function get_next_index(waypoints, index)
+	local index = index + 1
+	if index > #waypoints then
+		index = 1
+	end
+	return index
+end
+
+local function check_understeer(position, direction, curve_pos1, curve_pos2)
+	local diff1 = vmath.normalize(curve_pos1 - position)
+	local diff2 = vmath.normalize(curve_pos2 - position)
+	-- use the curve point 1 as the middle line
+	local normal = vmath.vector3(-diff1.y, diff1.x, 0)
+	local dot0 = vmath.dot(normal, direction)
+	local dot2 = vmath.dot(normal, diff2)
+	
+	--[[
+	print("direction", direction)
+	print("diff1", diff1)
+	print("diff2", diff2)
+	print("normal", normal)
+	print("dot0", dot0)
+	print("dot2", dot2)
+	--]]
+	
+	if util.sign(dot0) == util.sign(dot2) then
+		return vmath.dot(direction, diff1)
+	end
+	return 1
+end
+
+-- gets a point on the path, given a distance, relative to the start position (which should be on the path)
+local function get_curve_point(startposition, startindex, waypoints, distance)
+    while distance > 0 do
+        local segment = waypoints[startindex] - startposition
+        local segmentlength = vmath.length(segment)
+        
+        if segmentlength > distance then
+            segment = segment * (1 / segmentlength)
+            return startposition + segment * distance
+        end
+        
+        distance = distance - segmentlength
+        startposition = waypoints[startindex]
+        startindex = get_next_index(waypoints, startindex)
+    end
+    return startposition
+end
+
+
+function M.init(vehicle, waypoints, waypoint_index)
+	vehicle.waypoints = waypoints
+	vehicle.waypointindex = waypoint_index
+	vehicle.waypointindexprev = get_previous_index(vehicle, waypoint_index)
+	vehicle.waypoint = vehicle.waypoints[vehicle.waypointindex]
+	
+	vehicle.curve_point = get_curve_point(vehicle.position, vehicle.waypointindex, vehicle.waypoints, vehicle.curve_lookahead )
+    vehicle.curve_point2 = get_curve_point(vehicle.position, vehicle.waypointindex, vehicle.waypoints, vehicle.curve_lookahead * 2.0 )
+end
 
 function M.update(vehicle, dt)
     M.update_waypoint_index(vehicle)
@@ -54,49 +122,6 @@ function M.add_force(vehicle, force)
 	vehicle.accumulated_force = vehicle.accumulated_force + force
 end
 
-function M.set_waypoints(vehicle, waypoints, startindex)
-	vehicle.waypoints = waypoints
-	vehicle.waypointindex = startindex
-	vehicle.waypointindexprev = vehicle.waypointindex - 1
-	if vehicle.waypointindexprev < 1 then
-		vehicle.waypointindexprev = #vehicle.waypoints
-	end
-	vehicle.waypoint = vehicle.waypoints[vehicle.waypointindex]
-end
-
-local function get_previous_index(waypoints, index)
-	local index = index - 1
-	if index < 1 then
-		index = #waypoints
-	end
-	return index
-end
-
-local function get_next_index(waypoints, index)
-	local index = index + 1
-	if index > #waypoints then
-		index = 1
-	end
-	return index
-end
-
--- gets a point on the path, given a distance, relative to the start position (which should be on the path)
-local function get_curve_point(startposition, startindex, waypoints, distance)
-    while distance > 0 do
-        local segment = waypoints[startindex] - startposition
-        local segmentlength = vmath.length(segment)
-        
-        if segmentlength > distance then
-            segment = segment * (1 / segmentlength)
-            return startposition + segment * distance
-        end
-        
-        distance = distance - segmentlength
-        startposition = waypoints[startindex]
-        startindex = get_next_index(waypoints, startindex)
-    end
-    return startposition
-end
 
 local function get_curviness(waypoints, index, distance)
 	local pos = waypoints[index]
@@ -115,6 +140,28 @@ end
 
 function M.get_projected_position(vehicle)
     return util.project_point_to_line_segment(vehicle.position, vehicle.waypoints[vehicle.waypointindexprev], vehicle.waypoints[vehicle.waypointindex])
+end
+
+
+function get_projected_position(position, waypoints, waypointindex, waypointcount)
+	local closest = 1000000
+	local projected = nil
+
+	for i = waypointindex, waypointindex+waypointcount do
+		local index = i
+        if index > #waypoints then
+            index = 1
+        end
+		local previndex = get_previous_index(waypoints, index)
+		local projected_candidate = util.project_point_to_line_segment(position, waypoints[previndex], waypoints[index])
+		local diff = position - projected_candidate
+		local dist = vmath.length(diff)
+		if dist < closest then
+			projected = projected_candidate
+			closest = dist
+		end
+	end
+    return projected
 end
 
 function M.update_waypoint_index(vehicle)
@@ -157,49 +204,76 @@ local function get_predicted_distance_scale(vehicle)
 
 	local scale = predicted_distance_from_curve / vehicle.trackradius - 1
 	return math.max(0, scale)
+end
 
---[[
-	-- this happens frequently	
-	if false and predicted_distance_from_curve > vehicle.trackradius then
-		local scale = predicted_distance_from_curve / vehicle.trackradius - 1
-		print("scale", scale)
+local function get_curve_dot_scale(vehicle)
+	local v1 = vmath.normalize(vehicle.curve_point - vehicle.position)
+	local v2 = vmath.normalize(vehicle.curve_point2 - vehicle.curve_point)
+	local curve_dot = vmath.dot( vmath.normalize(vehicle.curve_point - vehicle.position), vmath.normalize(vehicle.curve_point2 - vehicle.curve_point) )
+	curve_dot = util.scale(curve_dot, 0, 1, -1, 1)
+	return curve_dot
+end
+
+local function get_vehicle_position_scale(vehicle)
+    local projected_position = M.get_projected_position(vehicle)
+    local distance_from_segment = vmath.length( projected_position - vehicle.position )
+	local scale = distance_from_segment / vehicle.trackradius - 1
+	return math.max(0, scale)
+end
+
+function M.find_apex(vehicle)
+	local diff = vehicle.curve_point2 - vehicle.position
+	local halfpoint = vehicle.position + diff * 0.5
+	local projected_point = get_projected_position(halfpoint, vehicle.waypoints, vehicle.waypointindex, 4)
+	local apex_normal = halfpoint - projected_point
+	local length = vmath.length(apex_normal)
+	local apex = nil
+	if length > vehicle.trackradius then
+		--apex = projected_point + apex_normal * (1 / length) * vehicle.trackradius
+		apex = projected_point + apex_normal
 		
-		msg.post("@render:", "draw_line", {start_point = vehicle.target, end_point = vehicle.target + prediction_pos_to_curve_pos * scale, color = vmath.vector4(1,0,1,1)})
+		msg.post("@render:", "draw_line", {start_point = apex, end_point = projected_point, color = vmath.vector4(1,0,0,1)})
+	else
+		apex = projected_point + apex_normal
 		
-		vehicle.target = vehicle.target + prediction_pos_to_curve_pos * scale
-		
-		scale = math.min(1, scale)
-		local brake = vehicle.velocity * -(1 - scale*scale*scale)
-		
-		-- fairly good to keep car on track
-		--msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,0,1)})
-		--M.add_force(vehicle, brake)
+		msg.post("@render:", "draw_line", {start_point = apex, end_point = projected_point, color = vmath.vector4(0,1,0,1)})
 	end
---]]
 
+	msg.post("@render:", "draw_line", {start_point = projected_point, end_point = projected_point + vmath.vector3(10,7,0), color = vmath.vector4(1,1,0,1)})
+	--msg.post("@render:", "draw_line", {start_point = apex, end_point = projected_point, color = vmath.vector4(0,1,0,1)})
+	
+	return apex, apex_normal
 end
 
 function M.update_target(vehicle)
 	local speed = vmath.length(vehicle.velocity)
 	
 	local speed_scale = speed / vehicle.maxspeed
-	local predicted_pos_scale = 1 --math.min(3, 3 - get_predicted_distance_scale(vehicle)) / 3
-	local lookahead_scale = speed_scale * predicted_pos_scale
-	
+	local predicted_pos_scale = math.max(0, 5 - get_predicted_distance_scale(vehicle)) / 5
+	local curve_scale = get_curve_dot_scale(vehicle)
+	local lookahead_scale = speed_scale * predicted_pos_scale * curve_scale
     local lookahead_slide = 0.15 + 0.85 * math.min(1, lookahead_scale)
     
     local projected_position = M.get_projected_position(vehicle)
     
 	vehicle.curve_point = get_curve_point(projected_position, vehicle.waypointindex, vehicle.waypoints, vehicle.curve_lookahead * lookahead_slide )
     vehicle.curve_point2 = get_curve_point(projected_position, vehicle.waypointindex, vehicle.waypoints, vehicle.curve_lookahead * 2.0 * lookahead_slide )
-    
-    local distance_from_segment = vmath.length( projected_position - vehicle.position ) / vehicle.trackradius
-    
+
+    local understeer_scale = check_understeer(vehicle.position, vehicle.direction, vehicle.curve_point, vehicle.curve_point2)
+    --print("understeer_scale", understeer_scale)
+        
+	local distance_from_segment = vmath.length( projected_position - vehicle.position ) / vehicle.trackradius
     local sliding_curve_point = vehicle.curve_point2
-    if distance_from_segment > 1 then        
-        local scale = math.min(distance_from_segment, 2) - 1
-        sliding_curve_point = vehicle.curve_point2 + (vehicle.curve_point - vehicle.curve_point2) * scale
+    local distance_from_segment_scale = 1
+    if distance_from_segment > 1 then
+        distance_from_segment_scale = math.min(distance_from_segment, 1)
     end
+    
+    --	(1-understeer_scale*understeer_scale*understeer_scale)
+
+	local sliding_curve_point_scale = distance_from_segment_scale * (understeer_scale*understeer_scale*understeer_scale)
+	--print("sliding_curve_point_scale", sliding_curve_point_scale)
+    sliding_curve_point = vehicle.curve_point2 + (vehicle.curve_point - vehicle.curve_point2) * (1 - sliding_curve_point_scale)
     
     local turn_radius = 200
     local waypoint_curviness1 = get_curviness(vehicle.waypoints, vehicle.waypointindexprev, turn_radius)
@@ -220,44 +294,24 @@ function M.update_target(vehicle)
     local target_offset = 1 - util.clamp(0, 1, (waypoint_segment_length / turn_radius)) * waypoint_curviness1
     --print("target_offset", target_offset)
     
+    
+    --local apex, apex_normal = M.find_apex(vehicle)
 	
     -- the further outside, take the offset inwards the center of the road
     --local target_offset_scale = math.max(1, distance_from_segment) / 1.5
+    local target_offset_scale = 1 - curve_scale
     --print("target_offset_scale", target_offset_scale)
-    vehicle.target = sliding_curve_point -- - waypoint_normal * target_offset * vehicle.trackradius
+    --vehicle.target = sliding_curve_point - waypoint_normal * target_offset_scale * vehicle.trackradius
+    vehicle.target = sliding_curve_point -- - waypoint_normal * target_offset_scale * vehicle.trackradius
 
-    
-	local vel_curve_dot = 1
-	if speed > 0 then
-		local dir = vehicle.velocity * (1/speed)
-		local curvepoint_dir = sliding_curve_point - vehicle.position
-		local ccurvepoint_dirlength = vmath.length(curvepoint_dir)
-		if ccurvepoint_dirlength > 0 then
-			--print("dir", dir)
-			--print("cpdir", cpdir)
-			--print("vehicle.curve_point", vehicle.curve_point)
-			--print("vehicle.position", vehicle.position)
-			vel_curve_dot = vmath.dot(dir, curvepoint_dir * (1/ccurvepoint_dirlength))
-			if vel_curve_dot < 0 then
-				vel_curve_dot = 0
-			end
-		end
-	end
 
-	local v1 = vmath.normalize(vehicle.curve_point - vehicle.position)
-	local v2 = vmath.normalize(vehicle.curve_point2 - vehicle.curve_point)
-	local curve_dot = vmath.dot( vmath.normalize(vehicle.curve_point - vehicle.position), vmath.normalize(vehicle.curve_point2 - vehicle.curve_point) )
-	curve_dot = util.scale(curve_dot, 0, 1, -1, 1)
-	curve_dot = util.clamp(-1, 1, curve_dot)
-
-	if speed > 0 and curve_dot > 0 then
-		local brake = vehicle.velocity * -(1 - curve_dot*curve_dot*curve_dot)
+	if speed > 0 and curve_scale > 0 then
+		local brake = vehicle.velocity * -(1 - curve_scale*curve_scale*curve_scale * understeer_scale*understeer_scale*understeer_scale)
 		
 		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,0,1)})
 		
 		M.add_force(vehicle, brake)
 	end
-
 
 	local desired = vehicle.target - vehicle.position
 		

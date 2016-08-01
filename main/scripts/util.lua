@@ -102,5 +102,13 @@ function M.format_time(t)
     return string.format("%2d:%02d:%02d", minutes, seconds, hundreds)
 end
 
+function M.sign(v)
+	if v < 0 then
+		return -1
+	else
+		return 1
+	end
+end
+
 return M
 

@@ -45,7 +45,7 @@ function init(self)
     self.waypointindex = 0
 end
 
-function update(self, dt)
+function update_ai(self, dt)
 
 	-- UPDATE
 	self.vehicle.pause = self.pause
@@ -57,8 +57,14 @@ function update(self, dt)
 	
 	-- ROTATION
 	self.direction = self.vehicle.direction
-	local rotation = vmath.quat_from_to(vmath.vector3(0,1,0), self.direction)
-	go.set_rotation(rotation, ".")
+	local dir_y = vmath.vector3(0,1,0)
+	local rotation = nil
+	if vmath.dot(dir_y, self.direction) > -0.999 then
+		rotation = vmath.quat_from_to(vmath.vector3(0,1,0), vmath.normalize(self.direction))
+	else
+		rotation = vmath.quat_rotation_z(math.pi)
+	end
+	go.set_rotation(rotation, ".")	
 	
 	
 	-- CAMERA
@@ -71,15 +77,9 @@ function update(self, dt)
 	if self.debug then
 		autonomous.debug(self.vehicle)
 	end
-	
-	if not self.vehicle.pause then
-		self.lap_time = self.lap_time + dt
-		self.total_time = self.total_time + dt
-		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = 1, lap = self.lap, lap_time = self.lap_time, total_time = self.total_time } )
-	end
 end
 
-function update2(self, dt)
+function update_player(self, dt)
 
 	-- TUMBLING
 	if self.tumble_timer == 0 and self.turndirection ~= 0 then
@@ -151,6 +151,17 @@ function update2(self, dt)
     --physics.ray_cast(self.rc_from, self.rc_to, { hash("track") } )
 end
 
+function update(self, dt)
+	--update_player(self, dt)
+	update_ai(self, dt)
+	
+	if not self.vehicle.pause then
+		self.lap_time = self.lap_time + dt
+		self.total_time = self.total_time + dt
+		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = 1, lap = self.lap, lap_time = self.lap_time, total_time = self.total_time } )
+	end
+end
+
 function on_message(self, message_id, message, sender)
     if message_id == hash("ray_cast_response") then 
         return
@@ -185,6 +196,6 @@ function on_message(self, message_id, message, sender)
 	        end
         end
     elseif message_id == constants.LEVEL_MESSAGE_INIT then
-    	autonomous.set_waypoints(self.vehicle, waypoint.get_waypoints(), 1)
+    	autonomous.init(self.vehicle, waypoint.get_waypoints(), 1)
     end
 end
