@@ -38,11 +38,13 @@ function init(self)
     self.debug = true
     
     self.vehicle = autonomous.create({position = self.position, maxspeed = self.maxspeed, radius = 32})
-    self.lap = 0
+    self.lap = -1
     self.lap_time = 0
     self.total_time = 0
     
     self.waypointindex = 0
+    
+    self.record_tick = 0
 end
 
 function update_ai(self, dt)
@@ -76,6 +78,16 @@ function update_ai(self, dt)
 	-- DEBUG
 	if self.debug then
 		autonomous.debug(self.vehicle)
+	end
+	
+	self.record_tick = (self.record_tick % 10) + 1
+	if self.record_tick == 1 then
+	   msg.post("/level#script", constants.RECORD_MESSAGE_PLAYER_POSITION, {
+	       playerid = self.playerid,
+	       position = self.vehicle.position,
+	       direction = self.vehicle.direction,
+           velocity = self.vehicle.velocity,
+	   })
 	end
 end
 
@@ -158,7 +170,7 @@ function update(self, dt)
 	if not self.vehicle.pause then
 		self.lap_time = self.lap_time + dt
 		self.total_time = self.total_time + dt
-		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = 1, lap = self.lap, lap_time = self.lap_time, total_time = self.total_time } )
+		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = self.playerid, lap = self.lap + 1, lap_time = self.lap_time, total_time = self.total_time } )
 	end
 end
 
@@ -189,7 +201,7 @@ function on_message(self, message_id, message, sender)
     elseif message_id == constants.PHYSICS_MESSAGE_TRIGGER and message.enter then
         if message.group == constants.PHYSICS_GROUP_FINISH then
         	self.lap = self.lap + 1
-        	if self.lap > 1 then
+        	if self.lap > 0 then
 	        	print("LAP " .. tostring(self.lap), util.format_time(self.lap_time))
 	            msg.post("/common/common#gui", constants.LEVEL_MESSAGE_LAP_TIME, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time } )
 	            self.lap_time = 0

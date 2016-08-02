@@ -267,6 +267,10 @@ function M.update_target(vehicle)
     local distance_from_segment_scale = 1
     if distance_from_segment > 1 then
         distance_from_segment_scale = math.min(distance_from_segment, 1)
+        
+        sprite.set_constant("#sprite", "tint", vmath.vector4(0.5,0,0,1))
+    else
+        sprite.set_constant("#sprite", "tint", vmath.vector4(1,1,1,1))
     end
     
     --	(1-understeer_scale*understeer_scale*understeer_scale)

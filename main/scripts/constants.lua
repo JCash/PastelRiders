@@ -35,4 +35,6 @@ M.PHYSICS_GROUP_OBSTACLE    = hash("obstacle")
 M.PHYSICS_GROUP_BONUS       = hash("bonus")
 M.PHYSICS_GROUP_FINISH      = hash("finishline")
 
+M.RECORD_MESSAGE_PLAYER_POSITION = hash("record_ai_position")
+
 return M

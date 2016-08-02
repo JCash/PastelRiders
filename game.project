@@ -29,3 +29,5 @@ max_debug_vertices = 100000
 [sprite]
 max_count = 512
 
+[trainer]
+record = 0
