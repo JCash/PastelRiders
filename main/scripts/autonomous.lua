@@ -103,7 +103,10 @@ end
 
 function M.update(vehicle, dt)
     M.update_waypoint_index(vehicle)
-	M.update_target(vehicle)
+	local valid_state = M.update_target(vehicle)
+	if not valid_state then
+	   return false
+	end
 	
 	if not vehicle.pause then
 		local acceleration = vehicle.accumulated_force * vehicle.oneovermass
@@ -116,6 +119,8 @@ function M.update(vehicle, dt)
         end
 	end
 	vehicle.accumulated_force = vmath.vector3(0,0,0)
+	
+	return true
 end
 
 function M.add_force(vehicle, force)
@@ -269,8 +274,7 @@ function M.update_target(vehicle)
         distance_from_segment_scale = math.min(distance_from_segment, 1)
         
         sprite.set_constant("#sprite", "tint", vmath.vector4(0.5,0,0,1))
-    else
-        sprite.set_constant("#sprite", "tint", vmath.vector4(1,1,1,1))
+        return false
     end
     
     --	(1-understeer_scale*understeer_scale*understeer_scale)
@@ -329,6 +333,8 @@ function M.update_target(vehicle)
 	end
 	
 	M.add_force(vehicle, steer)
+	
+	return true
 end
 
 function M.debug(vehicle)

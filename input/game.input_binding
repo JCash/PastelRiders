@@ -18,12 +18,44 @@ key_trigger {
   input: KEY_SPACE
   action: "space"
 }
-key_trigger {
-  input: KEY_1
-  action: "1"
-}
+
 key_trigger {
   input: KEY_0
-  action: "0"
+  action: "key_0"
 }
-
+key_trigger {
+  input: KEY_1
+  action: "key_1"
+}
+key_trigger {
+  input: KEY_2
+  action: "key_2"
+}
+key_trigger {
+  input: KEY_3
+  action: "key_3"
+}
+key_trigger {
+  input: KEY_4
+  action: "key_4"
+}
+key_trigger {
+  input: KEY_5
+  action: "key_5"
+}
+key_trigger {
+  input: KEY_6
+  action: "key_6"
+}
+key_trigger {
+  input: KEY_7
+  action: "key_7"
+}
+key_trigger {
+  input: KEY_8
+  action: "key_8"
+}
+key_trigger {
+  input: KEY_9
+  action: "key_9"
+}

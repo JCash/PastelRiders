@@ -2,6 +2,7 @@ local autonomous = require("main/scripts/autonomous")
 local constants = require("main/scripts/constants")
 local util = require("main/scripts/util")
 local waypoint = require("main/scripts/waypoint")
+local render_helper = require("main/scripts/render_helper")
 
 local SPRITE_ROTATION = 16 -- since the sprite is directed in positive y, and not positive x
 
@@ -70,9 +71,8 @@ function update_ai(self, dt)
 	
 	
 	-- CAMERA
-	local display_width = 800
-	local display_height = 600
-	local camerapos = self.position - vmath.vector3(display_width/4, display_height/4, 0)
+	print("render_helper  offset", render_helper.xoffset, render_helper.yoffset)
+	local camerapos = self.position - vmath.vector3(render_helper.width/4, render_helper.height/4, 0)
 	go.set_position(camerapos, "/common/camera#camera")
 	
 	-- DEBUG
