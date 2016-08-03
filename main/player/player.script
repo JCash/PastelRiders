@@ -86,11 +86,6 @@ function update_ai(self, dt)
 	end
 	go.set_rotation(rotation, ".")	
 	
-	
-	-- CAMERA
-	local camerapos = self.position - vmath.vector3(render_helper.width/4, render_helper.height/4, 0)
-	go.set_position(camerapos, "/common/camera#camera")
-	
 	-- DEBUG
 	if self.debug then
 		autonomous.debug(self.vehicle)
@@ -122,12 +117,6 @@ function update_player(self, dt)
 	self.position = self.position + self.speed * dt * self.direction
 	local visual_position = self.position
 	go.set_position(visual_position, ".")
-	
-	-- CAMERA
-	local display_width = 800
-	local display_height = 600
-	local camerapos = visual_position - vmath.vector3(display_width/4, display_height/4, 0)
-	go.set_position(camerapos, "/common/camera#camera")
 	
 	-- SPEED
 	if self.tumble_timer == 0 then 
@@ -186,6 +175,10 @@ function update(self, dt)
     
 	--update_player(self, dt)
 	update_ai(self, dt)
+	
+	-- CAMERA
+	local camerapos = self.position - vmath.vector3(render_helper.width/2, render_helper.height/2, 0)
+	go.set_position(camerapos, "/common/camera#camera")
 	
 	if not self.vehicle.pause then
 		self.lap_time = self.lap_time + dt
