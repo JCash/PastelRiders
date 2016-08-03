@@ -13,13 +13,19 @@ go.property("playerid", 1)
 
 
 function init(self)
-	-- car properties
-	self.traction = 1.0
-	self.acceleration_multiplier = 1.0
-	self.brake_multiplier = 1.0
-	self.brakes = 2.0
-	self.maxspeed = 250 --150.0
-	-- 
+    reset(self)
+end
+
+function reset(self)
+    self.initialized = 0
+    
+    -- car properties
+    self.traction = 1.0
+    self.acceleration_multiplier = 1.0
+    self.brake_multiplier = 1.0
+    self.brakes = 2.0
+    self.maxspeed = 250 --150.0
+    -- 
     self.speed = 0.0
     self.acceleration = 20
     self.brakes = 15
@@ -46,13 +52,24 @@ function init(self)
     self.waypointindex = 0
     
     self.record_tick = 0
+    
+    self.disabled = false
 end
 
 function update_ai(self, dt)
+    if self.disabled then
+        return
+    end
 
 	-- UPDATE
 	self.vehicle.pause = self.pause
-	autonomous.update(self.vehicle, dt)
+	local valid_update = autonomous.update(self.vehicle, dt)
+	if not valid_update then
+        --sprite.set_constant("#sprite", "tint", vmath.vector4(0.5,0,0,1))
+        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED, { reason = "Invalid position", waypoint = self.vehicle.waypointindexprev, time = self.lap_time })
+        self.disabled = true
+        return
+	end
 	
 	go.set_position(self.vehicle.position, ".")
 	self.position = self.vehicle.position
@@ -71,7 +88,6 @@ function update_ai(self, dt)
 	
 	
 	-- CAMERA
-	print("render_helper  offset", render_helper.xoffset, render_helper.yoffset)
 	local camerapos = self.position - vmath.vector3(render_helper.width/4, render_helper.height/4, 0)
 	go.set_position(camerapos, "/common/camera#camera")
 	
@@ -164,17 +180,26 @@ function update_player(self, dt)
 end
 
 function update(self, dt)
+    if not self.initialized then
+        return
+    end
+    
 	--update_player(self, dt)
 	update_ai(self, dt)
 	
 	if not self.vehicle.pause then
 		self.lap_time = self.lap_time + dt
 		self.total_time = self.total_time + dt
-		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = self.playerid, lap = self.lap + 1, lap_time = self.lap_time, total_time = self.total_time } )
+		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time, total_time = self.total_time } )
 	end
 end
 
 function on_message(self, message_id, message, sender)
+
+    if message_id == constants.PLAYER_MESSAGE_RESET then
+        reset(self)
+    end
+
     if message_id == hash("ray_cast_response") then 
         return
     end
@@ -204,10 +229,12 @@ function on_message(self, message_id, message, sender)
         	if self.lap > 0 then
 	        	print("LAP " .. tostring(self.lap), util.format_time(self.lap_time))
 	            msg.post("/common/common#gui", constants.LEVEL_MESSAGE_LAP_TIME, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time } )
+                msg.post("/level#script", constants.LEVEL_MESSAGE_LAP_FINISHED, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time } )
 	            self.lap_time = 0
 	        end
         end
     elseif message_id == constants.LEVEL_MESSAGE_INIT then
-    	autonomous.init(self.vehicle, waypoint.get_waypoints(), 1)
+    	   autonomous.init(self.vehicle, waypoint.get_waypoints(), 1)
+    	   self.initialized = 1
     end
 end

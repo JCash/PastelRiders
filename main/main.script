@@ -3,6 +3,7 @@ local constants = require("main/scripts/constants")
 function init(self)
     msg.post(".", "acquire_input_focus")
     msg.post("levels#level01", "load")
+    --msg.post("levels#short_track", "load")
 end
 
 function update(self, dt)
