@@ -31,10 +31,6 @@ function update(self)
     local current_width = render.get_window_width()
     local current_height = render.get_window_height()
     
-    
-    render_helper.width = current_width
-    render_helper.height = current_height
-    
     render.set_viewport(0, 0, current_width, current_height)
     render.set_view(self.view)
     --render.set_viewport(0, 0, render.get_window_width(), render.get_window_height())
@@ -78,14 +74,21 @@ function update(self)
     local zoom_factor = math.min(math.min(current_width / original_width, current_height / original_height), 1) / self.zoom
     local projected_width = current_width / zoom_factor
     local projected_height = current_height / zoom_factor
-    local xoffset = -(projected_width - original_width) / 2
-    local yoffset = -(projected_height - original_height) / 2
+    --local xoffset = -(projected_width - original_width) / 2
+    --local yoffset = -(projected_height - original_height) / 2
+    
+    
+    --print("original width/height", original_width, original_height)
+    --print("current width/height", current_width, current_height)
+    --print("ortho", xoffset, xoffset + projected_width, yoffset, yoffset + projected_height)
+    --print("")
+    
     --render.set_projection(vmath.matrix4_orthographic(xoffset, xoffset + projected_width, yoffset, yoffset + projected_height, -1, 1))
     render.set_projection(vmath.matrix4_orthographic(0, projected_width, 0, projected_height, -1, 1))
     
     render_helper.zoom_factor = zoom_factor
-    render_helper.xoffset = xoffset
-    render_helper.yoffset = yoffset
+    render_helper.width = projected_width
+    render_helper.height = projected_height
     
     -- Render the scene
     render.draw(self.tile_pred)
