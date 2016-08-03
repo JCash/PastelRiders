@@ -11,6 +11,9 @@ M.GAME_STATE_INGAME = 1
 M.LEVEL_MESSAGE_INIT        = hash("level_init")
 M.LEVEL_MESSAGE_PLAYER_TIME = hash("player_time")
 M.LEVEL_MESSAGE_LAP_TIME    = hash("lap_time")
+M.LEVEL_MESSAGE_LAP_FINISHED= hash("lap_finishes")
+
+M.PLAYER_MESSAGE_RESET      = hash("player_reset")
 
 M.PLAYER_MESSAGE_ACCELERATE = hash("accelerate")
 M.PLAYER_MESSAGE_BRAKE      = hash("brake")
@@ -36,5 +39,9 @@ M.PHYSICS_GROUP_BONUS       = hash("bonus")
 M.PHYSICS_GROUP_FINISH      = hash("finishline")
 
 M.RECORD_MESSAGE_PLAYER_POSITION = hash("record_ai_position")
+
+M.TRAINER_MESSAGE_FAILED    = hash("trainer_failed") -- for some reason, the lap failed, and was aborted
+
+
 
 return M

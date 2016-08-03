@@ -1,0 +1,82 @@
+name: "default"
+instances {
+  id: "player1"
+  prototype: "/main/player/player.go"
+  position {
+    x: 175.19337
+    y: 399.10303
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+collection_instances {
+  id: "common"
+  collection: "/main/common.collection"
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+scale_along_z: 0
+embedded_instances {
+  id: "finishline"
+  data: "embedded_components {\n  id: \"finishline\"\n  type: \"collisionobject\"\n  data: \"collision_shape: \\\"\\\"\\ntype: COLLISION_OBJECT_TYPE_TRIGGER\\nmass: 0.0\\nfriction: 0.1\\nrestitution: 0.5\\ngroup: \\\"finishline\\\"\\nmask: \\\"player\\\"\\nembedded_collision_shape {\\n  shapes {\\n    shape_type: TYPE_BOX\\n    position {\\n      x: 3.8470647\\n      y: 0.0\\n      z: 0.0\\n    }\\n    rotation {\\n      x: 0.0\\n      y: 0.0\\n      z: 0.0\\n      w: 1.0\\n    }\\n    index: 0\\n    count: 3\\n  }\\n  data: 90.0\\n  data: 5.0\\n  data: 10.0\\n}\\nlinear_damping: 0.0\\nangular_damping: 0.0\\nlocked_rotation: false\\n\"\n  position {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n  }\n  rotation {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n    w: 1.0\n  }\n}\n"
+  position {
+    x: 171.58882
+    y: 430.89832
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "level"
+  data: "components {\n  id: \"script\"\n  component: \"/main/scripts/level.script\"\n  position {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n  }\n  rotation {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n    w: 1.0\n  }\n}\ncomponents {\n  id: \"tilemap\"\n  component: \"/main/levels/short_track.tilemap\"\n  position {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n  }\n  rotation {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n    w: 1.0\n  }\n}\nembedded_components {\n  id: \"collisionobject\"\n  type: \"collisionobject\"\n  data: \"collision_shape: \\\"/main/levels/short_track.tilemap\\\"\\ntype: COLLISION_OBJECT_TYPE_STATIC\\nmass: 0.0\\nfriction: 0.1\\nrestitution: 0.5\\ngroup: \\\"\\\"\\nmask: \\\"player\\\"\\nembedded_collision_shape {\\n}\\n\"\n  position {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n  }\n  rotation {\n    x: 0.0\n    y: 0.0\n    z: 0.0\n    w: 1.0\n  }\n}\n"
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}

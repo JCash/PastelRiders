@@ -22,7 +22,7 @@ function M.create(parameters)
 		waypointindex = 0,
 		waypointindexprev = 0,
 		
-		trackradius = 3 * 32 * 0.5 - 10, --3 * 32 * 0.5,s
+		trackradius = 3 * 32 * 0.5 - 10,
 		targetlookaheaddist = 128,--24,
 		
 		curve_point = nil,
@@ -56,16 +56,7 @@ local function check_understeer(position, direction, curve_pos1, curve_pos2)
 	local normal = vmath.vector3(-diff1.y, diff1.x, 0)
 	local dot0 = vmath.dot(normal, direction)
 	local dot2 = vmath.dot(normal, diff2)
-	
-	--[[
-	print("direction", direction)
-	print("diff1", diff1)
-	print("diff2", diff2)
-	print("normal", normal)
-	print("dot0", dot0)
-	print("dot2", dot2)
-	--]]
-	
+
 	if util.sign(dot0) == util.sign(dot2) then
 		return vmath.dot(direction, diff1)
 	end
@@ -75,7 +66,7 @@ end
 -- gets a point on the path, given a distance, relative to the start position (which should be on the path)
 local function get_curve_point(startposition, startindex, waypoints, distance)
     while distance > 0 do
-        local segment = waypoints[startindex] - startposition
+        local segment = waypoints[startindex].pos + waypoints[startindex].offset - startposition
         local segmentlength = vmath.length(segment)
         
         if segmentlength > distance then
@@ -84,7 +75,7 @@ local function get_curve_point(startposition, startindex, waypoints, distance)
         end
         
         distance = distance - segmentlength
-        startposition = waypoints[startindex]
+        startposition = waypoints[startindex].pos
         startindex = get_next_index(waypoints, startindex)
     end
     return startposition
@@ -95,7 +86,6 @@ function M.init(vehicle, waypoints, waypoint_index)
 	vehicle.waypoints = waypoints
 	vehicle.waypointindex = waypoint_index
 	vehicle.waypointindexprev = get_previous_index(vehicle, waypoint_index)
-	vehicle.waypoint = vehicle.waypoints[vehicle.waypointindex]
 	
 	vehicle.curve_point = get_curve_point(vehicle.position, vehicle.waypointindex, vehicle.waypoints, vehicle.curve_lookahead )
     vehicle.curve_point2 = get_curve_point(vehicle.position, vehicle.waypointindex, vehicle.waypoints, vehicle.curve_lookahead * 2.0 )
@@ -129,9 +119,9 @@ end
 
 
 local function get_curviness(waypoints, index, distance)
-	local pos = waypoints[index]
+	local pos = waypoints[index].pos
 	local curve_point = get_curve_point(pos, index, waypoints, distance)
-	local segment = vmath.normalize(pos - waypoints[get_previous_index(waypoints, index)])
+	local segment = vmath.normalize(pos - waypoints[get_previous_index(waypoints, index)].pos)
 	local dir = curve_point - pos
 	local normal = vmath.vector3(-segment.y, segment.x, 0)
 	local dot = vmath.dot(segment, vmath.normalize(dir))
@@ -144,7 +134,7 @@ local function get_curviness(waypoints, index, distance)
 end
 
 function M.get_projected_position(vehicle)
-    return util.project_point_to_line_segment(vehicle.position, vehicle.waypoints[vehicle.waypointindexprev], vehicle.waypoints[vehicle.waypointindex])
+    return util.project_point_to_line_segment(vehicle.position, vehicle.waypoints[vehicle.waypointindexprev].pos, vehicle.waypoints[vehicle.waypointindex].pos)
 end
 
 
@@ -158,7 +148,7 @@ function get_projected_position(position, waypoints, waypointindex, waypointcoun
             index = 1
         end
 		local previndex = get_previous_index(waypoints, index)
-		local projected_candidate = util.project_point_to_line_segment(position, waypoints[previndex], waypoints[index])
+		local projected_candidate = util.project_point_to_line_segment(position, waypoints[previndex].pos, waypoints[index].pos)
 		local diff = position - projected_candidate
 		local dist = vmath.length(diff)
 		if dist < closest then
@@ -181,7 +171,7 @@ function M.update_waypoint_index(vehicle)
         end
         local previndex = get_previous_index(vehicle.waypoints, index)
 
-        local projected = util.project_point_to_line_segment(vehicle.position, vehicle.waypoints[previndex], vehicle.waypoints[index])
+        local projected = util.project_point_to_line_segment(vehicle.position, vehicle.waypoints[previndex].pos, vehicle.waypoints[index].pos)
         local distance_from_segment = vmath.length_sqr(projected - vehicle.position)
         
         if distance_from_segment < closestdist then
@@ -272,8 +262,6 @@ function M.update_target(vehicle)
     local distance_from_segment_scale = 1
     if distance_from_segment > 1 then
         distance_from_segment_scale = math.min(distance_from_segment, 1)
-        
-        sprite.set_constant("#sprite", "tint", vmath.vector4(0.5,0,0,1))
         return false
     end
     
@@ -286,7 +274,7 @@ function M.update_target(vehicle)
     local turn_radius = 200
     local waypoint_curviness1 = get_curviness(vehicle.waypoints, vehicle.waypointindexprev, turn_radius)
     local waypoint_curviness2 = get_curviness(vehicle.waypoints, vehicle.waypointindex, turn_radius)
-    local waypoint_segment = vehicle.waypoints[vehicle.waypointindex] - vehicle.waypoints[vehicle.waypointindexprev]
+    local waypoint_segment = vehicle.waypoints[vehicle.waypointindex].pos - vehicle.waypoints[vehicle.waypointindexprev].pos
     local waypoint_segment_length = vmath.length(waypoint_segment)
     local waypoint_normal = waypoint_segment * (1 / waypoint_segment_length)
     waypoint_normal = vmath.vector3(-waypoint_normal.y, waypoint_normal.x, 0)
@@ -346,7 +334,7 @@ function M.debug(vehicle)
     
 	msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + vehicle.velocity, color = vmath.vector4(1,1,1,1)})
 	
-	msg.post("@render:", "draw_line", {start_point = vehicle.waypoints[vehicle.waypointindex] + vmath.vector3(2,2,0), end_point = vehicle.waypoints[vehicle.waypointindexprev] + vmath.vector3(-2,-2,0), color = vmath.vector4(0, 1,1,1)})
+	msg.post("@render:", "draw_line", {start_point = vehicle.waypoints[vehicle.waypointindex].pos + vmath.vector3(2,2,0), end_point = vehicle.waypoints[vehicle.waypointindexprev].pos + vmath.vector3(-2,-2,0), color = vmath.vector4(0, 1,1,1)})
 	
 	msg.post("@render:", "draw_line", {start_point = vehicle.curve_point, end_point = vehicle.curve_point + vmath.vector3(7, 10, 0), color = vmath.vector4(1, 1,1,1)})
     msg.post("@render:", "draw_line", {start_point = vehicle.curve_point2, end_point = vehicle.curve_point2 + vmath.vector3(7, 10, 0), color = vmath.vector4(1, 1,1,1)})	

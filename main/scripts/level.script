@@ -7,6 +7,42 @@ local debugutil = require("main/scripts/debugutil")
 
 local players = {}
 
+local trainer_runs = {}
+local trainer_current_run = {}
+local trainer_best_run = 0 -- index into the trainer runs
+local trainer_best_run_time = 1000000 -- the currently best time
+local trainer_run_count = 0
+local trainer_waypoints = {}
+local trainer_show_last_number_of_runs = 10
+local trainer_waypoint_reached = 0 -- what is the hight index reached?
+
+local trainer_best_run_data = nil
+
+function reset_waypoints(self, waypoints)
+
+    self.waypoints = waypoints
+    
+    if self.trainer then
+        local index = 0
+        if trainer_waypoint_reached == 0 then
+            index = math.floor(math.random() * (#self.waypoints-1)) + 1
+        else
+            local r = math.random()
+            index = math.floor(trainer_waypoint_reached - r * 6)
+            if index < 1 then
+                index = #self.waypoints + index
+            end
+        end
+
+        local dist = math.random()
+        local angle = math.pi * 2 * math.random()
+        local trackradius = 3 * 32 * 0.5 - 10 -- from autonomous.lua
+        self.waypoints[index].offset = trackradius * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
+    end
+            
+    waypoint.set_waypoints(self.waypoints)
+end
+
 function init(self)
     msg.post(".", "acquire_input_focus")
     msg.post("/common/camera#camera", "acquire_camera_focus")
@@ -27,35 +63,148 @@ function init(self)
 	
 	local waypoints = {}
 	for _,wp in ipairs(self.waypoints) do
-		table.insert(waypoints, util.coords_to_screen_vector(wp[1]-1, wp[2]-1))
+		table.insert(waypoints, { pos = util.coords_to_screen_vector(wp[1]-1, wp[2]-1), offset = vmath.vector3(0,0,0), speed = 0 } )
 	end
-	self.waypoints = waypoints
-	waypoint.set_waypoints(self.waypoints)
+
+    reset_waypoints(self, waypoints)
 	
 	msg.post(players[1], constants.LEVEL_MESSAGE_INIT)
 	
 	self.debug = true
+	self.trainer = tonumber(sys.get_config('trainer.enable', 0))
+	
+self.trainer = 1
+	
+	if self.trainer then
+	   self.start_position = go.get_position(players[1])
+	   self.start_rotation = go.get_rotation(players[1])
+	end
 end
 
 function final(self)
 	msg.post(".", "release_input_focus")
 end
 
+local function reset_level(self)
+
+    if self.trainer then
+        -- change the track
+        reset_waypoints(self, trainer_waypoints)
+        
+        -- reset the players
+        go.set_position(self.start_position, players[1])
+        go.set_rotation(self.start_rotation, players[1])
+        msg.post(players[1], constants.PLAYER_MESSAGE_RESET, {})
+        msg.post(players[1], constants.LEVEL_MESSAGE_INIT, {})
+    end
+end
+
+function render_trainer_run(data)
+    for i = 1, #data do
+        if data[i] ~= nil then
+	        local d1 = data[i]
+	        local d2 = data[i % #data + 1]
+	        
+	        msg.post("@render:", "draw_line", {start_point = d1.position, end_point = d2.position, color = vmath.vector4(0, 0.6, 1, 1)})
+	    end
+    end
+end
+
+function render_waypoints(waypoints)
+    for i = 1, #waypoints do
+        local wp1 = waypoints[i]
+        local wp2 = waypoints[i % #waypoints + 1]
+        local color = i / #waypoints
+        msg.post("@render:", "draw_line", {start_point = wp1.pos, end_point = wp2.pos, color = vmath.vector4(color, color,1,1)})
+        
+        if wp1.offset ~= nil then
+            msg.post("@render:", "draw_line", {start_point = wp1.pos, end_point = wp1.pos + wp1.offset, color = vmath.vector4(color, color,1,1)})
+        end
+    end
+end
+
 function update(self, dt)
 	if self.debug then
-		for i = 1, #self.waypoints do
-			local wp1 = self.waypoints[i]
-			local wp2 = self.waypoints[i % #self.waypoints + 1]
-			local color = i / #self.waypoints
-			msg.post("@render:", "draw_line", {start_point = wp1, end_point = wp2, color = vmath.vector4(color, color,1,1)})
-		end
+	   render_waypoints(self.waypoints)
+    end
+    
+    if self.trainer then
+        if trainer_best_run ~= 0 then
+            --render_trainer_run(trainer_runs[trainer_best_run].data)
+            render_trainer_run(trainer_best_run_data)
+        end
     end
 end
 
 function on_message(self, message_id, message, sender)
     if message_id == constants.RECORD_MESSAGE_PLAYER_POSITION then
-        --print(message_id)
-        --pprint(message)
+        if self.trainer then
+	        --print(message_id)
+	        --pprint(message)
+	        table.insert(trainer_current_run, message)
+	    end
+	elseif message_id == constants.LEVEL_MESSAGE_LAP_FINISHED then
+
+        -- If all players have finished, and the timer has run out
+        if self.trainer then
+            trainer_run_count = trainer_run_count + 1
+             
+            table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
+            trainer_current_run = {}
+            trainer_waypoint_reached = #trainer_waypoints
+            
+            if message.lap_time < trainer_best_run_time then
+                trainer_best_run = trainer_run_count
+                trainer_best_run_time = message.lap_time
+                trainer_waypoints = self.waypoints
+                
+                trainer_best_run_data = trainer_current_run
+                
+                print("New best lap found. Using as seed")
+                
+                --[[
+                for i, v in pairs(trainer_runs) do
+                    print("key", i)
+                end
+                --]]
+            end
+            
+            print("TRAINER RUN", trainer_run_count, "BEST:", trainer_best_run_time, trainer_best_run)
+            
+            if #trainer_runs > trainer_show_last_number_of_runs then
+	            if (trainer_run_count - trainer_show_last_number_of_runs) ~= trainer_best_run then
+	                trainer_runs[trainer_run_count - trainer_show_last_number_of_runs] = nil
+	            end
+            end
+            
+            reset_level(self)
+        end
+    elseif message_id == constants.TRAINER_MESSAGE_FAILED then
+        trainer_run_count = trainer_run_count + 1
+        print("TRAINER RUN (failed)", trainer_run_count, message.reason, message.time, message.waypoint)
+        
+        table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
+        trainer_current_run = {}
+        
+        trainer_waypoints = self.waypoints
+
+        if #trainer_runs > trainer_show_last_number_of_runs then
+            if (trainer_run_count - trainer_show_last_number_of_runs) ~= trainer_best_run then
+                trainer_runs[trainer_run_count - trainer_show_last_number_of_runs] = nil
+            end
+        end
+        
+        if message.waypoint > trainer_waypoint_reached then
+            trainer_waypoint_reached = message.waypoint
+
+            trainer_best_run_data = trainer_current_run
+            
+            print("Reached further than before (" .. tostring(trainer_waypoint_reached) .."). Using as seed")
+        else
+            --
+        end
+        
+        reset_level(self)
     end
 end
 
