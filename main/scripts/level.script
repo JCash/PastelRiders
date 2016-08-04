@@ -18,35 +18,42 @@ local trainer_waypoint_reached = 0 -- what is the hight index reached?
 
 local trainer_best_run_data = nil
 
-function reset_waypoints(self, waypoints)
 
-    self.waypoints = util.deepcopy(waypoints)
-    
+local function modify_waypoints(self, waypoints)
     if self.trainer then
         local index = 0
         if trainer_waypoint_reached == 0 then
-            index = math.floor(math.random() * (#self.waypoints-1)) + 1
+            index = math.floor(math.random() * (#waypoints-1)) + 1
         else
             local r = math.random()
             index = math.floor(trainer_waypoint_reached - r * 6)
             if index < 1 then
-                index = #self.waypoints + index
+                index = #waypoints + index
             end
         end
 
         local dist = math.random()
         local angle = math.pi * 2 * math.random()
         local trackradius = 3 * 32 * 0.5 - 10 -- from autonomous.lua
-        self.waypoints[index].offset = trackradius * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
+        waypoints[index].offset = trackradius * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
     end
-            
+end
+
+local function reset_waypoints(self, waypoints)
+    self.waypoints = util.deepcopy(waypoints)
+
     waypoint.set_waypoints(self.waypoints)
 end
 
 function init(self)
     msg.post(".", "acquire_input_focus")
     msg.post("/common/camera#camera", "acquire_camera_focus")
+        
+    self.debug = true
+    self.trainer = tonumber(sys.get_config('trainer.enable', 0))
     
+self.trainer = 1
+
 	playerinput.setup()
 	
     table.insert(players, go.get_id("/player1"))
@@ -61,19 +68,25 @@ function init(self)
 	local tile_pos_x, tile_pos_y = util.screen_to_coords(pos.x, pos.y)
 	self.waypoints = waypoint.find_route("#tilemap", "waypoints", {tile_pos_x+1, tile_pos_y+1}, {0, 1})
 	
-	local waypoints = {}
-	for _,wp in ipairs(self.waypoints) do
-		table.insert(waypoints, { pos = util.coords_to_screen_vector(wp[1]-1, wp[2]-1), offset = vmath.vector3(0,0,0), speed = 0 } )
-	end
-
+    local waypoints = nil
+    
+    if self.trainer then
+        local levelname = sys.get_config('trainer.level', 'level01')
+        levelname = "main/levels/" .. levelname .. ".wp.json"
+        waypoints = waypoint.load_waypoints(levelname)
+    end
+    
+    if waypoints == nil then
+        waypoints = {}
+	    -- add pos, offset and speed
+		for _,wp in ipairs(self.waypoints) do
+			table.insert(waypoints, { pos = util.coords_to_screen_vector(wp[1]-1, wp[2]-1), offset = vmath.vector3(0,0,0), speed = 0 } )
+		end
+    end
+        
     reset_waypoints(self, waypoints)
 	
 	msg.post(players[1], constants.LEVEL_MESSAGE_INIT)
-	
-	self.debug = true
-	self.trainer = tonumber(sys.get_config('trainer.enable', 0))
-	
-self.trainer = 1
 	
 	if self.trainer then
 	   self.start_position = go.get_position(players[1])
@@ -89,6 +102,7 @@ local function reset_level(self)
 
     if self.trainer then
         -- change the track
+        modify_waypoints(self, trainer_waypoints)
         reset_waypoints(self, trainer_waypoints)
         
         -- reset the players

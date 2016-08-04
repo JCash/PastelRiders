@@ -1,1 +1,14 @@
-[{"pos":vmath.vector3(176, 528, 0), "offset":vmath.vector3(-5.3461656570435, -7.1796560287476, 0), "speed":0}, {"pos":vmath.vector3(208, 560, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(240, 560, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(432, 560, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(464, 528, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(464, 496, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(464, 304, 0), "offset":vmath.vector3(-10.673913002014, 10.007460594177, 0), "speed":0}, {"pos":vmath.vector3(432, 272, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(400, 272, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(208, 272, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}, {"pos":vmath.vector3(176, 304, 0), "offset":vmath.vector3(11.228029251099, -1.0580595731735, 0), "speed":0}, {"pos":vmath.vector3(176, 336, 0), "offset":vmath.vector3(0, 0, 0), "speed":0}]
+{
+  1 : { "pos" : "176,528,0", "offset" : "-5.3461656570435,-7.1796560287476,0", "speed" : "0" },
+  2 : { "pos" : "208,560,0", "offset" : "0,0,0", "speed" : "0" },
+  3 : { "pos" : "240,560,0", "offset" : "0,0,0", "speed" : "0" },
+  4 : { "pos" : "432,560,0", "offset" : "0,0,0", "speed" : "0" },
+  5 : { "pos" : "464,528,0", "offset" : "0,0,0", "speed" : "0" },
+  6 : { "pos" : "464,496,0", "offset" : "0,0,0", "speed" : "0" },
+  7 : { "pos" : "464,304,0", "offset" : "0,0,0", "speed" : "0" },
+  8 : { "pos" : "432,272,0", "offset" : "0,0,0", "speed" : "0" },
+  9 : { "pos" : "400,272,0", "offset" : "0,0,0", "speed" : "0" },
+  10 : { "pos" : "208,272,0", "offset" : "0,0,0", "speed" : "0" },
+  11 : { "pos" : "176,304,0", "offset" : "0,0,0", "speed" : "0" },
+  12 : { "pos" : "176,336,0", "offset" : "0,0,0", "speed" : "0" }
+}

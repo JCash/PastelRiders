@@ -1,5 +1,3 @@
-local jsonlua = require("main/scripts/json") 
-
 local M = {}
 
 function M.set_waypoints(waypoints)
@@ -72,11 +70,82 @@ function M.find_route(tilemap_url, layername, starttile, startdir)
 	return waypoints
 end
 
+local function stringify_vec3(wp)
+    return "" .. tostring(wp.x) .. "," .. tostring(wp.y) .. "," .. tostring(wp.z) .. ""
+end
+
+local function stringify_wp(wp)
+    local pos = '"pos" : "' .. stringify_vec3(wp.pos) .. '"'
+    local offset = '"offset" : "' .. stringify_vec3(wp.offset) .. '"'
+    local speed = '"speed" : "' .. tostring(wp.speed) .. '"'
+    
+    return '{ ' .. pos .. ', ' .. offset .. ', ' .. speed .. ' }'
+end
+
+
+local function stringify_waypoints(waypoints)
+    local s = "{\n"
+    for i, wp in pairs(waypoints) do
+        s = s .. '  ' .. tostring(i) .. ' : ' .. stringify_wp(wp)
+        if i ~= #waypoints then
+            s = s .. ',\n'
+        else
+            s = s .. '\n'
+        end
+    end
+    s = s .. "}\n"
+    return s
+end
+
+
 function M.save_waypoints(path, waypoints)
-    local encoded = jsonlua.stringify(waypoints)
+    local encoded = stringify_waypoints(waypoints)
+    
     local file = io.open(path, "wb")
     file:write(encoded)
     file:close()
+end
+
+local function split(s, delimiter)
+    result = {};
+    for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+        table.insert(result, match);
+    end
+    return result;
+end
+
+local function decode_vec3(s)
+    local x, y, z = s:match("([^,]+),([^,]+),([^,]+)")
+    return vmath.vector3( tonumber(x), tonumber(y), tonumber(z) )
+end
+
+function M.load_waypoints(path, waypoints)
+    local file, result = io.open(path, "rb")
+    if file == nil then
+        print("No such file", path)
+        return nil
+    end
+    
+    local encoded = ""
+    for line in file:lines() do
+        encoded = encoded .. line
+    end
+    file:close()
+
+    local decodedwaypoints = json.decode(encoded)
+    
+    local waypoints = {}
+    
+    for i, v in pairs(decodedwaypoints) do
+        local wp = {}
+        local v = decodedwaypoints[i]
+        wp.pos = decode_vec3(v.pos)
+        wp.offset = decode_vec3(v.offset)
+        wp.speed = tonumber(v.speed)
+        waypoints[i] = wp
+    end
+    
+    return waypoints
 end
 
 return M
