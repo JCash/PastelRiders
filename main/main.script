@@ -2,8 +2,20 @@ local constants = require("main/scripts/constants")
 
 function init(self)
     msg.post(".", "acquire_input_focus")
-    --msg.post("levels#level01", "load")
-    msg.post("levels#short_track", "load")
+    
+    local levelname = 'level01'
+    
+	local trainer = tonumber(sys.get_config('trainer.enable', 0))
+    print("TRAINER", trainer)
+	if trainer ~= 0 then
+    	levelname = sys.get_config('trainer.level', 'level01')
+    	print("TRAINER loading level", levelname)
+    	
+    	local file = io.open("trainer.test", "wb")
+    	file:write("Some test text")
+    	file:close()
+    end
+    msg.post("levels#" .. levelname, "load")
 end
 
 function update(self, dt)

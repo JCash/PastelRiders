@@ -20,7 +20,7 @@ local trainer_best_run_data = nil
 
 function reset_waypoints(self, waypoints)
 
-    self.waypoints = waypoints
+    self.waypoints = util.deepcopy(waypoints)
     
     if self.trainer then
         local index = 0
@@ -118,7 +118,7 @@ function render_waypoints(waypoints)
         msg.post("@render:", "draw_line", {start_point = wp1.pos, end_point = wp2.pos, color = vmath.vector4(color, color,1,1)})
         
         if wp1.offset ~= nil then
-            msg.post("@render:", "draw_line", {start_point = wp1.pos, end_point = wp1.pos + wp1.offset, color = vmath.vector4(color, color,1,1)})
+            msg.post("@render:", "draw_line", {start_point = wp1.pos, end_point = wp1.pos + wp1.offset, color = vmath.vector4(1,1,1,1)})
         end
     end
 end
@@ -150,13 +150,12 @@ function on_message(self, message_id, message, sender)
             trainer_run_count = trainer_run_count + 1
              
             table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
-            trainer_current_run = {}
             trainer_waypoint_reached = #trainer_waypoints
             
             if message.lap_time < trainer_best_run_time then
                 trainer_best_run = trainer_run_count
                 trainer_best_run_time = message.lap_time
-                trainer_waypoints = self.waypoints
+                trainer_waypoints = util.deepcopy(self.waypoints)
                 
                 trainer_best_run_data = trainer_current_run
                 
@@ -168,6 +167,8 @@ function on_message(self, message_id, message, sender)
                 end
                 --]]
             end
+            
+            trainer_current_run = {}
             
             print("TRAINER RUN", trainer_run_count, "BEST:", trainer_best_run_time, trainer_best_run)
             
@@ -185,8 +186,6 @@ function on_message(self, message_id, message, sender)
         
         table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
         trainer_current_run = {}
-        
-        trainer_waypoints = self.waypoints
 
         if #trainer_runs > trainer_show_last_number_of_runs then
             if (trainer_run_count - trainer_show_last_number_of_runs) ~= trainer_best_run then
@@ -198,6 +197,8 @@ function on_message(self, message_id, message, sender)
             trainer_waypoint_reached = message.waypoint
 
             trainer_best_run_data = trainer_current_run
+        
+        	trainer_waypoints = util.deepcopy(self.waypoints)
             
             print("Reached further than before (" .. tostring(trainer_waypoint_reached) .."). Using as seed")
         else
