@@ -1,3 +1,5 @@
+local jsonlua = require("main/scripts/json") 
+
 local M = {}
 
 function M.set_waypoints(waypoints)
@@ -68,6 +70,13 @@ function M.find_route(tilemap_url, layername, starttile, startdir)
 		end 	
 	end
 	return waypoints
+end
+
+function M.save_waypoints(path, waypoints)
+    local encoded = jsonlua.stringify(waypoints)
+    local file = io.open(path, "wb")
+    file:write(encoded)
+    file:close()
 end
 
 return M

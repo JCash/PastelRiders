@@ -161,11 +161,9 @@ function on_message(self, message_id, message, sender)
                 
                 print("New best lap found. Using as seed")
                 
-                --[[
-                for i, v in pairs(trainer_runs) do
-                    print("key", i)
-                end
-                --]]
+                local levelname = sys.get_config('trainer.level', 'level01')
+                levelname = "main/levels/" .. levelname .. ".wp.json"
+                waypoint.save_waypoints(levelname, trainer_waypoints)
             end
             
             trainer_current_run = {}
