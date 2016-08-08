@@ -183,7 +183,8 @@ function update(self, dt)
 	if not self.vehicle.pause then
 		self.lap_time = self.lap_time + dt
 		self.total_time = self.total_time + dt
-		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time, total_time = self.total_time } )
+		local speed = vmath.length(self.vehicle.velocity)
+		msg.post("/common/common#gui", constants.LEVEL_MESSAGE_PLAYER_TIME, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time, total_time = self.total_time, speed = speed } )
 	end
 end
 

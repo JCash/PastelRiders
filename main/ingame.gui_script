@@ -17,6 +17,9 @@ function on_message(self, message_id, message, sender)
         local pid = tostring(message.playerid)
         local node = gui.get_node("lap" .. pid)
         gui.set_text(node, util.format_time(message.total_time))
+        
+        node = gui.get_node("speed" .. pid)
+        gui.set_text(node, tostring(math.floor(message.speed)))
 
     elseif message_id == constants.LEVEL_MESSAGE_LAP_TIME then
         local pid = tostring(message.playerid)
