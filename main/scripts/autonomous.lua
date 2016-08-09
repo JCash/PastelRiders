@@ -35,6 +35,12 @@ function M.create(parameters)
 	}
 end
 
+local function print_wps(index, waypoints)
+    for i = 1, index do
+        print(string.format("%g: spd: %g", i, math.floor(waypoints[i].speed)))
+    end
+end
+
 local function get_previous_index(waypoints, index)
 	local index = index - 1
 	if index < 1 then
@@ -97,6 +103,7 @@ function M.update(vehicle, dt)
     M.update_waypoint_index(vehicle)
 	local valid_state = M.update_target(vehicle)
 	if not valid_state then
+	   print_wps(vehicle.waypointindex, vehicle.waypoints)
 	   return false
 	end
 	
@@ -187,6 +194,7 @@ function M.update_waypoint_index(vehicle)
     vehicle.waypointindex = newindex
     vehicle.waypointindexprev = newindexprev
 end
+
 
 local function get_predicted_distance_scale(vehicle)
 
@@ -302,7 +310,7 @@ function M.update_target(vehicle)
 	local recommended_speed = vehicle.waypoints[vehicle.waypointindex].speed
 	if recommended_speed ~= 0 and recommended_speed < speed then
 		local amount = speed - recommended_speed
-		local brake = vehicle.direction * -amount
+		local brake = vehicle.direction * -(amount*amount)
 		--print("brake", amount)
 	
 		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,1,1)})

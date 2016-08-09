@@ -9,6 +9,7 @@ local players = {}
 
 local trainer_runs = {}
 local trainer_current_run = {}
+local trainer_current_time = 0
 local trainer_best_run = 0 -- index into the trainer runs
 local trainer_best_run_time = 1000000 -- the currently best time
 local trainer_run_count = 0
@@ -25,23 +26,32 @@ local function modify_waypoints(self, waypoints, maxspeed)
         if trainer_waypoint_reached == 0 then
             index = math.floor(math.random() * (#waypoints-1)) + 1
         else
-            local r = math.random()
-            index = math.floor(trainer_waypoint_reached - r * 6)
-            if index < 1 then
-                index = 1
+            local countback = 3
+			local r = math.random()
+			index = math.floor(trainer_waypoint_reached - r * countback)
+			if index < 1 then
+			    index = 1
+			end
+			
+            for i = trainer_waypoint_reached, trainer_waypoint_reached - countback do
+                local speed = waypoints[i].speed
+                if speed == 0 then
+                    index = i
+                    break
+                end
             end
-                    
-        	local speed = waypoints[index].speed
-        	if speed == 0 then
-        		waypoints[index].speed = maxspeed * 0.9
-        		print(string.format("set maxspeed[%d] = %f", index, waypoints[index].speed))
-        	elseif speed > maxspeed then
-        		waypoints[index].speed = waypoints[index].speed * 0.9
-        		print(string.format("set speed[%d] = %f", index, waypoints[index].speed))
-        	else
-        		waypoints[index].speed = waypoints[index].speed * 0.95
-        		print(string.format("speed[%d] = %f", index, waypoints[index].speed))
-        	end
+		        
+			local speed = waypoints[index].speed
+			if speed == 0 then
+				waypoints[index].speed = maxspeed * 0.9
+				print(string.format("set maxspeed[%d] = %f", index, waypoints[index].speed))
+			elseif speed > maxspeed then
+				waypoints[index].speed = waypoints[index].speed * 0.9
+				print(string.format("set speed[%d] = %f", index, waypoints[index].speed))
+			else
+				waypoints[index].speed = waypoints[index].speed * 0.95
+				print(string.format("speed[%d] = %f", index, waypoints[index].speed))
+			end
         end
 
         local dist = math.random()
@@ -113,6 +123,8 @@ end
 local function reset_level(self, maxspeed)
 
     if self.trainer then
+        trainer_current_time = 0
+        
         -- change the track
         modify_waypoints(self, trainer_waypoints, maxspeed)
         reset_waypoints(self, trainer_waypoints)
@@ -155,6 +167,11 @@ function update(self, dt)
     end
     
     if self.trainer then
+        trainer_current_time = trainer_current_time + dt
+        if trainer_best_run ~= 0 and trainer_current_time > trainer_best_run_time then
+            -- if the run took too long, abort
+            msg.post("#", constants.TRAINER_MESSAGE_FAILED, { reason = "Lap took too long", waypoint = 0, time = trainer_current_time, speed = 0 })
+        end
         if trainer_best_run ~= 0 then
             --render_trainer_run(trainer_runs[trainer_best_run].data)
             render_trainer_run(trainer_best_run_data)
@@ -217,12 +234,12 @@ function on_message(self, message_id, message, sender)
             end
         end
         
-        if message.waypoint >= trainer_waypoint_reached then
+        if message.waypoint > trainer_waypoint_reached then
             trainer_waypoint_reached = message.waypoint
 
             trainer_best_run_data = trainer_current_run
         
-        	trainer_waypoints = util.deepcopy(self.waypoints)
+        	   trainer_waypoints = util.deepcopy(self.waypoints)
             
             print("Reached further (or same wp) than before (" .. tostring(trainer_waypoint_reached) .."). Using as seed")
         else
