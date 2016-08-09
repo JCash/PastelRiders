@@ -66,10 +66,13 @@ function update_ai(self, dt)
 	local valid_update = autonomous.update(self.vehicle, dt)
 	if not valid_update then
         local wpindex = self.vehicle.waypointindex
-        if wpindex > self.vehicle.waypointindex then
-        	   wpindex = 1
-        end
-        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED, { reason = "Invalid position", waypoint = wpindex, time = self.lap_time, speed = vmath.length(self.vehicle.velocity) })
+        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED,
+            {   reason = "Invalid position",
+                waypoint = wpindex,
+                time = self.lap_time,
+                speed = vmath.length(self.vehicle.velocity),
+                numsegments = self.vehicle.num_segments_visited
+            })
         self.disabled = true
         return
 	end

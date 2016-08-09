@@ -21,8 +21,10 @@ function M.create(parameters)
 		waypointindex = 0,
 		waypointindexprev = 0,
 		
-		
 		curve_point = nil,
+		curve_point2 = nil,
+		
+		num_segments_visited = 0,
 		
 		pause = false,
 		
@@ -36,8 +38,9 @@ function M.create(parameters)
 end
 
 local function print_wps(index, waypoints)
-    for i = 1, index do
-        print(string.format("%g: spd: %g", i, math.floor(waypoints[i].speed)))
+    for i = 1, #waypoints do
+        local s = (i == index) and "*" or ""
+        print(string.format("%g: spd: %g %s", i, math.floor(waypoints[i].speed), s))
     end
 end
 
@@ -143,7 +146,9 @@ local function get_curviness(waypoints, index, distance)
 end
 
 function M.get_projected_position(vehicle)
-    return util.project_point_to_line_segment(vehicle.position, vehicle.waypoints[vehicle.waypointindexprev].pos, vehicle.waypoints[vehicle.waypointindex].pos)
+    local wp1 = vehicle.waypoints[vehicle.waypointindexprev]
+    local wp2 = vehicle.waypoints[vehicle.waypointindex]
+    return util.project_point_to_line_segment(vehicle.position, wp1.pos + wp1.offset, wp2.pos + wp2.offset)
 end
 
 
@@ -189,6 +194,10 @@ function M.update_waypoint_index(vehicle)
             newindex = index
             newindexprev = previndex
         end
+    end
+    
+    if vehicle.waypointindex ~= newindex then
+        vehicle.num_segments_visited = vehicle.num_segments_visited + 1
     end
     
     vehicle.waypointindex = newindex
@@ -308,9 +317,10 @@ function M.update_target(vehicle)
     vehicle.target = sliding_curve_point -- - waypoint_normal * target_offset_scale * vehicle.trackradius
 
 	local recommended_speed = vehicle.waypoints[vehicle.waypointindex].speed
+	--print("speed / recommended", speed, recommended_speed)
 	if recommended_speed ~= 0 and recommended_speed < speed then
 		local amount = speed - recommended_speed
-		local brake = vehicle.direction * -(amount*amount)
+		local brake = vehicle.direction * -(amount)
 		--print("brake", amount)
 	
 		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,1,1)})

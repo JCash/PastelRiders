@@ -70,13 +70,13 @@ function M.find_route(tilemap_url, layername, starttile, startdir)
 	return waypoints
 end
 
-local function stringify_vec3(wp)
+function M.stringify_vec3(wp)
     return "" .. tostring(wp.x) .. "," .. tostring(wp.y) .. "," .. tostring(wp.z) .. ""
 end
 
 local function stringify_wp(wp)
-    local pos = '"pos" : "' .. stringify_vec3(wp.pos) .. '"'
-    local offset = '"offset" : "' .. stringify_vec3(wp.offset) .. '"'
+    local pos = '"pos" : "' .. M.stringify_vec3(wp.pos) .. '"'
+    local offset = '"offset" : "' .. M.stringify_vec3(wp.offset) .. '"'
     local speed = '"speed" : "' .. tostring(wp.speed) .. '"'
     
     return '{ ' .. pos .. ', ' .. offset .. ', ' .. speed .. ' }'
@@ -114,12 +114,12 @@ local function split(s, delimiter)
     return result;
 end
 
-local function decode_vec3(s)
+function M.decode_vec3(s)
     local x, y, z = s:match("([^,]+),([^,]+),([^,]+)")
     return vmath.vector3( tonumber(x), tonumber(y), tonumber(z) )
 end
 
-function M.load_waypoints(path, waypoints)
+function M.load_waypoints(path)
     local file, result = io.open(path, "rb")
     if file == nil then
         print("No such file", path)
@@ -139,8 +139,8 @@ function M.load_waypoints(path, waypoints)
     for i, v in pairs(decodedwaypoints) do
         local wp = {}
         local v = decodedwaypoints[i]
-        wp.pos = decode_vec3(v.pos)
-        wp.offset = decode_vec3(v.offset)
+        wp.pos = M.decode_vec3(v.pos)
+        wp.offset = M.decode_vec3(v.offset)
         wp.speed = tonumber(v.speed)
         waypoints[i] = wp
     end

@@ -4,6 +4,7 @@ local screenfade = require("main/scripts/screenfade")
 local waypoint = require("main/scripts/waypoint")
 local util = require("main/scripts/util")
 local debugutil = require("main/scripts/debugutil")
+local trainer = require("main/scripts/trainer")
 
 local players = {}
 
@@ -16,6 +17,7 @@ local trainer_run_count = 0
 local trainer_waypoints = {}
 local trainer_show_last_number_of_runs = 10
 local trainer_waypoint_reached = 0 -- what is the highest index reached?
+local trainer_segments_visited = 0
 
 local trainer_best_run_data = nil
 
@@ -26,17 +28,31 @@ local function modify_waypoints(self, waypoints, maxspeed)
         if trainer_waypoint_reached == 0 then
             index = math.floor(math.random() * (#waypoints-1)) + 1
         else
-            local countback = 3
+            local countback = 6
 			local r = math.random()
-			index = math.floor(trainer_waypoint_reached - r * countback)
+			index = trainer_waypoint_reached - math.floor(r * countback)
 			if index < 1 then
-			    index = 1
+			    index = index + #waypoints
 			end
 			
-            for i = trainer_waypoint_reached, trainer_waypoint_reached - countback do
-                local speed = waypoints[i].speed
+			print("trainer_waypoint_reached", trainer_waypoint_reached)
+			
+            if trainer_waypoint_reached == 1 then
+                print("trainer_waypoint_reached / countback", trainer_waypoint_reached, countback)
+            end
+            for i = trainer_waypoint_reached, trainer_waypoint_reached - countback, -1 do
+                
+                local ii = i
+                if i < 1 then
+                    ii = i + #waypoints
+                end
+                
+                if trainer_waypoint_reached == 1 then
+                    print("ii / spd", ii, waypoints[ii].speed)
+                end
+                local speed = waypoints[ii].speed
                 if speed == 0 then
-                    index = i
+                    index = ii
                     break
                 end
             end
@@ -113,6 +129,8 @@ self.trainer = 1
 	if self.trainer then
 	   self.start_position = go.get_position(players[1])
 	   self.start_rotation = go.get_rotation(players[1])
+	   
+	   trainer_best_run_data = trainer.load_data("main/levels/trainerrun.json")
 	end
 end
 
@@ -137,16 +155,8 @@ local function reset_level(self, maxspeed)
     end
 end
 
-function render_trainer_run(data)
-    for i = 1, #data do
-        if data[i] ~= nil then
-	        local d1 = data[i]
-	        local d2 = data[i % #data + 1]
-	        
-	        msg.post("@render:", "draw_line", {start_point = d1.position, end_point = d2.position, color = vmath.vector4(0, 0.6, 1, 1)})
-	    end
-    end
-end
+
+
 
 function render_waypoints(waypoints)
     for i = 1, #waypoints do
@@ -170,14 +180,16 @@ function update(self, dt)
         trainer_current_time = trainer_current_time + dt
         if trainer_best_run ~= 0 and trainer_current_time > trainer_best_run_time then
             -- if the run took too long, abort
-            msg.post("#", constants.TRAINER_MESSAGE_FAILED, { reason = "Lap took too long", waypoint = 0, time = trainer_current_time, speed = 0 })
+            msg.post("#", constants.TRAINER_MESSAGE_FAILED, { reason = "Lap took too long", waypoint = 0, time = trainer_current_time, speed = 0, numsegments = 0 })
         end
-        if trainer_best_run ~= 0 then
+        --if trainer_best_run ~= 0 then
+        if trainer_best_run_data ~= nil then
             --render_trainer_run(trainer_runs[trainer_best_run].data)
-            render_trainer_run(trainer_best_run_data)
+            trainer.render_trainer_data(trainer_best_run_data)
         end
     end
 end
+
 
 function on_message(self, message_id, message, sender)
     if message_id == constants.RECORD_MESSAGE_PLAYER_POSITION then
@@ -225,8 +237,10 @@ function on_message(self, message_id, message, sender)
         trainer_run_count = trainer_run_count + 1
         print(string.format("TRAINER RUN (failed) %d, %s, t: %f, wp: %d, spd: %f", trainer_run_count, message.reason, message.time, message.waypoint, message.speed))
         
+        levelname = "main/levels/trainerrun.json"
+        trainer.save_data(levelname, trainer_current_run)
+            
         table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
-        trainer_current_run = {}
 
         if #trainer_runs > trainer_show_last_number_of_runs then
             if (trainer_run_count - trainer_show_last_number_of_runs) ~= trainer_best_run then
@@ -234,17 +248,19 @@ function on_message(self, message_id, message, sender)
             end
         end
         
-        if message.waypoint > trainer_waypoint_reached then
+        if message.numsegments > trainer_segments_visited then
+            trainer_segments_visited = message.numsegments
             trainer_waypoint_reached = message.waypoint
 
             trainer_best_run_data = trainer_current_run
         
-        	   trainer_waypoints = util.deepcopy(self.waypoints)
+        	trainer_waypoints = util.deepcopy(self.waypoints)
             
-            print("Reached further (or same wp) than before (" .. tostring(trainer_waypoint_reached) .."). Using as seed")
+            print("Reached further (or same wp) than before (" .. tostring(trainer_waypoint_reached) .. "  segs: " .. tostring(message.numsegments) .."). Using as seed")
         else
             --
         end
+        trainer_current_run = {}
         
         reset_level(self, message.speed)
     end
