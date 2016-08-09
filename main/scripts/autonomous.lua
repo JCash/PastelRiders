@@ -16,20 +16,22 @@ function M.create(parameters)
 		velocity = vmath.vector3(0,0,0),
 		direction = vmath.vector3(0,1,0),
 		accumulated_force = vmath.vector3(0,0,0),
-		maxforce = 100000,
 		
 		waypoints = nil,
 		waypointindex = 0,
 		waypointindexprev = 0,
 		
-		trackradius = 3 * 32 * 0.5 - 10,
-		targetlookaheaddist = 128,--24,
 		
 		curve_point = nil,
 		
-		curve_lookahead = 160,
+		pause = false,
 		
-		pause = false
+		-- car properties
+		maxforce = 100000,
+		
+		trackradius = 3 * 32 * 0.5 - 10,
+		targetlookaheaddist = 128,--24,
+		curve_lookahead = 160
 	}
 end
 
@@ -256,7 +258,7 @@ function M.update_target(vehicle)
 
     local understeer_scale = check_understeer(vehicle.position, vehicle.direction, vehicle.curve_point, vehicle.curve_point2)
     --print("understeer_scale", understeer_scale)
-        
+    
 	local distance_from_segment = vmath.length( projected_position - vehicle.position ) / vehicle.trackradius
     local sliding_curve_point = vehicle.curve_point2
     local distance_from_segment_scale = 1
@@ -264,8 +266,6 @@ function M.update_target(vehicle)
         distance_from_segment_scale = math.min(distance_from_segment, 1)
         return false
     end
-    
-    --	(1-understeer_scale*understeer_scale*understeer_scale)
 
 	local sliding_curve_point_scale = distance_from_segment_scale * (understeer_scale*understeer_scale*understeer_scale)
 	--print("sliding_curve_point_scale", sliding_curve_point_scale)
@@ -293,18 +293,26 @@ function M.update_target(vehicle)
     
     --local apex, apex_normal = M.find_apex(vehicle)
 	
-    -- the further outside, take the offset inwards the center of the road
-    --local target_offset_scale = math.max(1, distance_from_segment) / 1.5
+    -- the further outside of the track, take the offset inwards the center of the road
     local target_offset_scale = 1 - curve_scale
     --print("target_offset_scale", target_offset_scale)
     --vehicle.target = sliding_curve_point - waypoint_normal * target_offset_scale * vehicle.trackradius
     vehicle.target = sliding_curve_point -- - waypoint_normal * target_offset_scale * vehicle.trackradius
 
+	local recommended_speed = vehicle.waypoints[vehicle.waypointindex].speed
+	if recommended_speed ~= 0 and recommended_speed < speed then
+		local amount = speed - recommended_speed
+		local brake = vehicle.direction * -amount
+		--print("brake", amount)
+	
+		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,1,1)})
+		M.add_force(vehicle, brake)
+	end
 
-	if speed > 0 and curve_scale > 0 then
+	if false and speed > 0 and curve_scale > 0 then
 		local brake = vehicle.velocity * -(1 - curve_scale*curve_scale*curve_scale * understeer_scale*understeer_scale*understeer_scale)
 		
-		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,0,1)})
+		msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake, color = vmath.vector4(1,0,0,0.99)})
 		
 		M.add_force(vehicle, brake)
 	end

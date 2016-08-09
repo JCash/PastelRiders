@@ -14,12 +14,12 @@ local trainer_best_run_time = 1000000 -- the currently best time
 local trainer_run_count = 0
 local trainer_waypoints = {}
 local trainer_show_last_number_of_runs = 10
-local trainer_waypoint_reached = 0 -- what is the hight index reached?
+local trainer_waypoint_reached = 0 -- what is the highest index reached?
 
 local trainer_best_run_data = nil
 
 
-local function modify_waypoints(self, waypoints)
+local function modify_waypoints(self, waypoints, maxspeed)
     if self.trainer then
         local index = 0
         if trainer_waypoint_reached == 0 then
@@ -28,8 +28,20 @@ local function modify_waypoints(self, waypoints)
             local r = math.random()
             index = math.floor(trainer_waypoint_reached - r * 6)
             if index < 1 then
-                index = #waypoints + index
+                index = 1
             end
+                    
+        	local speed = waypoints[index].speed
+        	if speed == 0 then
+        		waypoints[index].speed = maxspeed * 0.9
+        		print(string.format("set maxspeed[%d] = %f", index, waypoints[index].speed))
+        	elseif speed > maxspeed then
+        		waypoints[index].speed = waypoints[index].speed * 0.9
+        		print(string.format("set speed[%d] = %f", index, waypoints[index].speed))
+        	else
+        		waypoints[index].speed = waypoints[index].speed * 0.95
+        		print(string.format("speed[%d] = %f", index, waypoints[index].speed))
+        	end
         end
 
         local dist = math.random()
@@ -98,11 +110,11 @@ function final(self)
 	msg.post(".", "release_input_focus")
 end
 
-local function reset_level(self)
+local function reset_level(self, maxspeed)
 
     if self.trainer then
         -- change the track
-        modify_waypoints(self, trainer_waypoints)
+        modify_waypoints(self, trainer_waypoints, maxspeed)
         reset_waypoints(self, trainer_waypoints)
         
         -- reset the players
@@ -190,11 +202,11 @@ function on_message(self, message_id, message, sender)
 	            end
             end
             
-            reset_level(self)
+            reset_level(self, 0)
         end
     elseif message_id == constants.TRAINER_MESSAGE_FAILED then
         trainer_run_count = trainer_run_count + 1
-        print("TRAINER RUN (failed)", trainer_run_count, message.reason, message.time, message.waypoint)
+        print(string.format("TRAINER RUN (failed) %d, %s, t: %f, wp: %d, spd: %f", trainer_run_count, message.reason, message.time, message.waypoint, message.speed))
         
         table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
         trainer_current_run = {}
@@ -205,19 +217,19 @@ function on_message(self, message_id, message, sender)
             end
         end
         
-        if message.waypoint > trainer_waypoint_reached then
+        if message.waypoint >= trainer_waypoint_reached then
             trainer_waypoint_reached = message.waypoint
 
             trainer_best_run_data = trainer_current_run
         
         	trainer_waypoints = util.deepcopy(self.waypoints)
             
-            print("Reached further than before (" .. tostring(trainer_waypoint_reached) .."). Using as seed")
+            print("Reached further (or same wp) than before (" .. tostring(trainer_waypoint_reached) .."). Using as seed")
         else
             --
         end
         
-        reset_level(self)
+        reset_level(self, message.speed)
     end
 end
 

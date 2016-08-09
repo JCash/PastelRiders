@@ -66,7 +66,11 @@ function update_ai(self, dt)
 	local valid_update = autonomous.update(self.vehicle, dt)
 	if not valid_update then
         --sprite.set_constant("#sprite", "tint", vmath.vector4(0.5,0,0,1))
-        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED, { reason = "Invalid position", waypoint = self.vehicle.waypointindexprev, time = self.lap_time })
+        local wpindex = self.vehicle.waypointindexprev
+        if wpindex > self.vehicle.waypointindex then
+        	wpindex = 1
+        end
+        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED, { reason = "Invalid position", waypoint = wpindex, time = self.lap_time, speed = vmath.length(self.vehicle.velocity) })
         self.disabled = true
         return
 	end

@@ -32,5 +32,5 @@ max_count = 512
 
 [trainer]
 enable = 0
-level = short_track
+level = level01
 

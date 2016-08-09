@@ -12,7 +12,7 @@ function init(self)
     
 	if trainer ~= 0 then
         levelname = sys.get_config('trainer.level', 'level01')
-	    	print("TRAINER loading level", levelname)
+	    print("TRAINER loading level", levelname)
     end
     msg.post("levels#" .. levelname, "load")
 end
