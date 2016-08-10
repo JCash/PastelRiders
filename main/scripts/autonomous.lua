@@ -29,7 +29,7 @@ function M.create(parameters)
 		pause = false,
 		
 		-- car properties
-		maxforce = 100000,
+		maxforce = 150,
 		
 		trackradius = 3 * 32 * 0.5 - 10,
 		targetlookaheaddist = 128,--24,
@@ -148,7 +148,7 @@ end
 function M.get_projected_position(vehicle)
     local wp1 = vehicle.waypoints[vehicle.waypointindexprev]
     local wp2 = vehicle.waypoints[vehicle.waypointindex]
-    return util.project_point_to_line_segment(vehicle.position, wp1.pos + wp1.offset, wp2.pos + wp2.offset)
+    return util.project_point_to_line_segment(vehicle.position, wp1.pos, wp2.pos + wp2.offset)
 end
 
 
@@ -342,6 +342,8 @@ function M.update_target(vehicle)
 	
 	local steer = desired - vehicle.velocity
 	local len = vmath.length(steer)
+
+--print(len, vehicle.maxforce)
 	if len > vehicle.maxforce then
 		steer = steer * (1 / len) * vehicle.maxforce
 	end

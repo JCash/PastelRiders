@@ -25,8 +25,12 @@ local trainer_best_run_data = nil
 local function modify_waypoints(self, waypoints, maxspeed)
     if self.trainer then
         local index = 0
+        local lower_speed = 0
+        local speed_lower_limit = 60
+            
         if trainer_waypoint_reached == 0 then
             index = math.floor(math.random() * (#waypoints-1)) + 1
+            
         else
             local countback = 6
 			local r = math.random()
@@ -40,40 +44,43 @@ local function modify_waypoints(self, waypoints, maxspeed)
             if trainer_waypoint_reached == 1 then
                 print("trainer_waypoint_reached / countback", trainer_waypoint_reached, countback)
             end
+            
             for i = trainer_waypoint_reached, trainer_waypoint_reached - countback, -1 do
-                
                 local ii = i
                 if i < 1 then
                     ii = i + #waypoints
                 end
-                
-                if trainer_waypoint_reached == 1 then
-                    print("ii / spd", ii, waypoints[ii].speed)
-                end
                 local speed = waypoints[ii].speed
-                if speed == 0 then
+                if speed == 0 or speed > speed_lower_limit then
                     index = ii
                     break
                 end
             end
-		        
-			local speed = waypoints[index].speed
-			if speed == 0 then
-				waypoints[index].speed = maxspeed * 0.9
-				print(string.format("set maxspeed[%d] = %f", index, waypoints[index].speed))
-			elseif speed > maxspeed then
-				waypoints[index].speed = waypoints[index].speed * 0.9
-				print(string.format("set speed[%d] = %f", index, waypoints[index].speed))
-			else
-				waypoints[index].speed = waypoints[index].speed * 0.95
-				print(string.format("speed[%d] = %f", index, waypoints[index].speed))
-			end
+		    
+		    lower_speed = 1
         end
 
         local dist = math.random()
         local angle = math.pi * 2 * math.random()
         local trackradius = 3 * 32 * 0.5 - 10 -- from autonomous.lua
         waypoints[index].offset = trackradius * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
+        
+        if lower_speed ~= 0 then
+            local speed = waypoints[index].speed
+            if speed == 0 then
+                waypoints[index].speed = maxspeed * 0.9
+                print(string.format("set maxspeed[%d] = %f", index, waypoints[index].speed))
+            elseif speed > maxspeed then
+                waypoints[index].speed = waypoints[index].speed * 0.9
+                print(string.format("set speed[%d] = %f", index, waypoints[index].speed))
+            elseif speed > speed_lower_limit  then
+                waypoints[index].speed = waypoints[index].speed * 0.95
+                print(string.format("speed[%d] = %f", index, waypoints[index].speed))
+            end
+        else
+            waypoints[index].speed = waypoints[index].speed * 1.05
+            print(string.format("increase speed[%d] = %f", index, waypoints[index].speed))
+        end
     end
 end
 
