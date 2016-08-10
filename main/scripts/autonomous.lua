@@ -29,19 +29,12 @@ function M.create(parameters)
 		pause = false,
 		
 		-- car properties
-		maxforce = 150,
+		maxforce = 250,
 		
 		trackradius = 3 * 32 * 0.5 - 10,
 		targetlookaheaddist = 128,--24,
 		curve_lookahead = 160
 	}
-end
-
-local function print_wps(index, waypoints)
-    for i = 1, #waypoints do
-        local s = (i == index) and "*" or ""
-        print(string.format("%g: spd: %g %s", i, math.floor(waypoints[i].speed), s))
-    end
 end
 
 local function get_previous_index(waypoints, index)
@@ -106,7 +99,6 @@ function M.update(vehicle, dt)
     M.update_waypoint_index(vehicle)
 	local valid_state = M.update_target(vehicle)
 	if not valid_state then
-	   print_wps(vehicle.waypointindex, vehicle.waypoints)
 	   return false
 	end
 	
@@ -148,7 +140,7 @@ end
 function M.get_projected_position(vehicle)
     local wp1 = vehicle.waypoints[vehicle.waypointindexprev]
     local wp2 = vehicle.waypoints[vehicle.waypointindex]
-    return util.project_point_to_line_segment(vehicle.position, wp1.pos, wp2.pos + wp2.offset)
+    return util.project_point_to_line_segment(vehicle.position, wp1.pos, wp2.pos)
 end
 
 

@@ -27,8 +27,8 @@ local function modify_waypoints(self, waypoints, maxspeed)
         local index = 0
         local lower_speed = 0
         local speed_lower_limit = 60
-            
-        if trainer_waypoint_reached == 0 then
+        
+        if trainer_waypoint_reached == 0 or trainer_waypoint_reached == #waypoints then
             index = math.floor(math.random() * (#waypoints-1)) + 1
             
         else
@@ -84,16 +84,24 @@ local function modify_waypoints(self, waypoints, maxspeed)
     end
 end
 
-local function reset_waypoints(self, waypoints)
-    self.waypoints = util.deepcopy(waypoints)
+local function print_wps(index, waypoints)
+    for i = 1, #waypoints do
+        local s = (i == index) and "*" or ""
+        print(string.format("%g: spd: %g %s", i, math.floor(waypoints[i].speed), s))
+    end
+end
 
-    waypoint.set_waypoints(self.waypoints)
+local function reset_waypoints(self, waypoints)
+    print_wps(trainer_waypoint_reached, waypoints)
+    
+    waypoint.set_waypoints(waypoints)
 end
 
 function init(self)
     msg.post(".", "acquire_input_focus")
     msg.post("/common/camera#camera", "acquire_camera_focus")
         
+    self.pause = false
     self.debug = true
     self.trainer = tonumber(sys.get_config('trainer.enable', 0))
     
@@ -119,6 +127,9 @@ self.trainer = 1
         local levelname = sys.get_config('trainer.level', 'level01')
         levelname = "main/levels/" .. levelname .. ".wp.json"
         waypoints = waypoint.load_waypoints(levelname)
+        
+        trainer_segments_visited = #waypoints
+        trainer_waypoint_reached = #waypoints
     end
     
     if waypoints == nil then
@@ -128,7 +139,9 @@ self.trainer = 1
 			table.insert(waypoints, { pos = util.coords_to_screen_vector(wp[1]-1, wp[2]-1), offset = vmath.vector3(0,0,0), speed = 0 } )
 		end
     end
-        
+    trainer_waypoints = util.deepcopy(self.waypoints)
+    
+    self.waypoints = waypoints
     reset_waypoints(self, waypoints)
 	
 	msg.post(players[1], constants.LEVEL_MESSAGE_INIT)
@@ -151,6 +164,7 @@ local function reset_level(self, maxspeed)
         trainer_current_time = 0
         
         -- change the track
+        trainer_waypoints = util.deepcopy(self.waypoints)
         modify_waypoints(self, trainer_waypoints, maxspeed)
         reset_waypoints(self, trainer_waypoints)
         
@@ -184,11 +198,14 @@ function update(self, dt)
     end
     
     if self.trainer then
-        trainer_current_time = trainer_current_time + dt
-        if trainer_best_run ~= 0 and trainer_current_time > trainer_best_run_time then
-            -- if the run took too long, abort
-            msg.post("#", constants.TRAINER_MESSAGE_FAILED, { reason = "Lap took too long", waypoint = 0, time = trainer_current_time, speed = 0, numsegments = 0 })
-        end
+        
+        if not self.pause then
+	        trainer_current_time = trainer_current_time + dt
+	        if trainer_best_run ~= 0 and trainer_current_time > trainer_best_run_time then
+	            -- if the run took too long, abort
+	            msg.post("#", constants.TRAINER_MESSAGE_FAILED, { reason = "Lap took too long", waypoint = 0, time = trainer_current_time, speed = 0, numsegments = 0 })
+	        end
+	    end
         --if trainer_best_run ~= 0 then
         if trainer_best_run_data ~= nil then
             --render_trainer_run(trainer_runs[trainer_best_run].data)
@@ -213,6 +230,7 @@ function on_message(self, message_id, message, sender)
              
             table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
             trainer_waypoint_reached = #trainer_waypoints
+            trainer_segments_visited = #self.waypoints
             
             if message.lap_time < trainer_best_run_time then
                 trainer_best_run = trainer_run_count
@@ -226,6 +244,10 @@ function on_message(self, message_id, message, sender)
                 local levelname = sys.get_config('trainer.level', 'level01')
                 levelname = "main/levels/" .. levelname .. ".wp.json"
                 waypoint.save_waypoints(levelname, trainer_waypoints)
+                
+                
+                print("trainer_segments_visited", trainer_segments_visited)
+        
             end
             
             trainer_current_run = {}
@@ -244,9 +266,6 @@ function on_message(self, message_id, message, sender)
         trainer_run_count = trainer_run_count + 1
         print(string.format("TRAINER RUN (failed) %d, %s, t: %f, wp: %d, spd: %f", trainer_run_count, message.reason, message.time, message.waypoint, message.speed))
         
-        levelname = "main/levels/trainerrun.json"
-        trainer.save_data(levelname, trainer_current_run)
-            
         table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
 
         if #trainer_runs > trainer_show_last_number_of_runs then
@@ -255,7 +274,13 @@ function on_message(self, message_id, message, sender)
             end
         end
         
+        print("trainer_segments_visited", trainer_segments_visited)
+        print("message.numsegments", message.numsegments)
+        
         if message.numsegments > trainer_segments_visited then
+        
+            print("trainer_waypoint_reached", message.waypoint)
+            
             trainer_segments_visited = message.numsegments
             trainer_waypoint_reached = message.waypoint
 
@@ -264,6 +289,10 @@ function on_message(self, message_id, message, sender)
         	trainer_waypoints = util.deepcopy(self.waypoints)
             
             print("Reached further (or same wp) than before (" .. tostring(trainer_waypoint_reached) .. "  segs: " .. tostring(message.numsegments) .."). Using as seed")
+            
+	        levelname = "main/levels/trainerrun.json"
+	        trainer.save_data(levelname, trainer_current_run)
+	        
         else
             --
         end
@@ -276,6 +305,10 @@ end
 function on_input(self, action_id, action)
 	local playerid = 1
 	playerinput.on_input(playerid, players[playerid], action_id, action)
+	
+	if action_id == hash("space") and action.pressed then
+        self.pause = not self.pause
+    end
 	
 	debugutil.on_input(self, action_id, action)
 end
