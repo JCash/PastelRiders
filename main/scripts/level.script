@@ -8,6 +8,8 @@ local trainer = require("main/scripts/trainer")
 
 local players = {}
 
+local trackradius = 3 * 32 * 0.5 - 10 -- from autonomous.lua
+        
 local trainer_runs = {}
 local trainer_current_run = {}
 local trainer_current_time = 0
@@ -21,6 +23,38 @@ local trainer_segments_visited = 0
 
 local trainer_best_run_data = nil
 
+local level_maxspeed = 250
+
+local function cleanup_waypoints(self, waypoints)
+    for i = 1, #waypoints do
+        local index = i
+        
+        local segment_prev = waypoint.get_segment(waypoints, index-1, index)
+        local segment_next = waypoint.get_segment(waypoints, index, index+1)
+        local entering_curve_scale = vmath.length_sqr(segment_prev) > vmath.length_sqr(segment_next) and 1 or -1
+        local curviness = waypoint.get_curviness(waypoints, index, 150)
+        local normal = vmath.normalize(vmath.vector3(-segment_prev.y, segment_prev.x, 0))
+        
+        if waypoints[index].offset ~= nil then
+            print("offset before", waypoints[index].offset)
+        end
+        
+        local dist = math.random()
+        local angle = math.pi * 2 * math.random()
+        local rand_offset = 0 * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
+        
+        local curvescale = math.max(0, (1 - curviness/math.pi) - 1)
+        waypoints[index].offset = normal * trackradius * curvescale * entering_curve_scale + rand_offset
+        
+        waypoints[index].speed = 40 --level_maxspeed - level_maxspeed * curvescale
+        
+        print("segment_next", segment_next)
+        print("normal", normal)
+        print("entering_curve", entering_curve_scale)
+        print("curvescale", curvescale)
+        print("offset after", waypoints[index].offset)
+    end
+end
 
 local function modify_waypoints(self, waypoints, maxspeed)
     if self.trainer then
@@ -28,10 +62,15 @@ local function modify_waypoints(self, waypoints, maxspeed)
         local lower_speed = 0
         local speed_lower_limit = 60
         
+        print("modify_waypoints")
+        
         if trainer_waypoint_reached == 0 or trainer_waypoint_reached == #waypoints then
+            print("  lap case")    
             index = math.floor(math.random() * (#waypoints-1)) + 1
             
         else
+            print("  wp case")
+            
             local countback = 6
 			local r = math.random()
 			index = trainer_waypoint_reached - math.floor(r * countback)
@@ -40,11 +79,13 @@ local function modify_waypoints(self, waypoints, maxspeed)
 			end
 			
 			print("trainer_waypoint_reached", trainer_waypoint_reached)
+            print("index", index)
 			
             if trainer_waypoint_reached == 1 then
                 print("trainer_waypoint_reached / countback", trainer_waypoint_reached, countback)
             end
             
+            local found = 0
             for i = trainer_waypoint_reached, trainer_waypoint_reached - countback, -1 do
                 local ii = i
                 if i < 1 then
@@ -59,11 +100,36 @@ local function modify_waypoints(self, waypoints, maxspeed)
 		    
 		    lower_speed = 1
         end
-
+        
+        --local dist = math.random()
+        --local angle = math.pi * 2 * math.random()
+        --waypoints[index].offset = trackradius * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
+        
+        --index = 1
+        
+        local segment_prev = waypoint.get_segment(waypoints, index-1, index)
+        local segment_next = waypoint.get_segment(waypoints, index, index+1)
+        local entering_curve_scale = vmath.length_sqr(segment_prev) > vmath.length_sqr(segment_next) and 1 or -1
+        local curviness = waypoint.get_curviness(waypoints, index, 150)
+        local normal = vmath.normalize(vmath.vector3(-segment_prev.y, segment_prev.x, 0))
+        
+        if waypoints[index].offset ~= nil then
+            print("offset before", waypoints[index].offset)
+        end
+        
+        
         local dist = math.random()
         local angle = math.pi * 2 * math.random()
-        local trackradius = 3 * 32 * 0.5 - 10 -- from autonomous.lua
-        waypoints[index].offset = trackradius * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
+        local rand_offset = 10 * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
+        
+        local curvescale = math.max(0, (1 - curviness/math.pi) - 1)
+        waypoints[index].offset = normal * trackradius * curvescale * entering_curve_scale + rand_offset
+        
+        print("segment_next", segment_next)
+        print("normal", normal)
+        print("entering_curve", entering_curve_scale)
+        print("curvescale", curvescale)
+        print("offset after", waypoints[index].offset)
         
         if lower_speed ~= 0 then
             local speed = waypoints[index].speed
@@ -78,7 +144,7 @@ local function modify_waypoints(self, waypoints, maxspeed)
                 print(string.format("speed[%d] = %f", index, waypoints[index].speed))
             end
         else
-            waypoints[index].speed = waypoints[index].speed * 1.05
+            waypoints[index].speed = waypoints[index].speed * 1.10
             print(string.format("increase speed[%d] = %f", index, waypoints[index].speed))
         end
     end
@@ -87,6 +153,7 @@ end
 local function print_wps(index, waypoints)
     for i = 1, #waypoints do
         local s = (i == index) and "*" or ""
+        
         print(string.format("%g: spd: %g %s", i, math.floor(waypoints[i].speed), s))
     end
 end
@@ -128,8 +195,10 @@ self.trainer = 1
         levelname = "main/levels/" .. levelname .. ".wp.json"
         waypoints = waypoint.load_waypoints(levelname)
         
-        trainer_segments_visited = #waypoints
-        trainer_waypoint_reached = #waypoints
+        if waypoints ~= nil then
+	        trainer_segments_visited = #waypoints
+	        trainer_waypoint_reached = #waypoints
+	    end
     end
     
     if waypoints == nil then
@@ -138,11 +207,13 @@ self.trainer = 1
 		for _,wp in ipairs(self.waypoints) do
 			table.insert(waypoints, { pos = util.coords_to_screen_vector(wp[1]-1, wp[2]-1), offset = vmath.vector3(0,0,0), speed = 0 } )
 		end
+		
+		cleanup_waypoints(self, waypoints)
     end
-    trainer_waypoints = util.deepcopy(self.waypoints)
-    
     self.waypoints = waypoints
-    reset_waypoints(self, waypoints)
+    
+    trainer_waypoints = util.deepcopy(self.waypoints)
+    reset_waypoints(self, trainer_waypoints)
 	
 	msg.post(players[1], constants.LEVEL_MESSAGE_INIT)
 	
@@ -188,6 +259,11 @@ function render_waypoints(waypoints)
         
         if wp1.offset ~= nil then
             msg.post("@render:", "draw_line", {start_point = wp1.pos, end_point = wp1.pos + wp1.offset, color = vmath.vector4(1,1,1,1)})
+        end
+        if wp1.speed ~= nil then
+            local u = (i % 3) / 3
+            local offset = vmath.vector3(u*10, u, 0)
+            msg.post("@render:", "draw_line", {start_point = wp1.pos + offset, end_point = wp1.pos + offset + vmath.vector3(-1,1,0) * wp1.speed, color = vmath.vector4(1,1,0,1)})
         end
     end
 end
@@ -235,16 +311,16 @@ function on_message(self, message_id, message, sender)
             if message.lap_time < trainer_best_run_time then
                 trainer_best_run = trainer_run_count
                 trainer_best_run_time = message.lap_time
-                trainer_waypoints = util.deepcopy(self.waypoints)
-                
                 trainer_best_run_data = trainer_current_run
+                self.waypoints = util.deepcopy(trainer_waypoints)
                 
-                print("New best lap found. Using as seed")
+                print("New best lap found. Using as seed:")
+                print_wps(trainer_waypoint_reached, self.waypoints)
+                print("<- -")
                 
                 local levelname = sys.get_config('trainer.level', 'level01')
                 levelname = "main/levels/" .. levelname .. ".wp.json"
                 waypoint.save_waypoints(levelname, trainer_waypoints)
-                
                 
                 print("trainer_segments_visited", trainer_segments_visited)
         
@@ -286,9 +362,9 @@ function on_message(self, message_id, message, sender)
 
             trainer_best_run_data = trainer_current_run
         
-        	trainer_waypoints = util.deepcopy(self.waypoints)
+            self.waypoints = util.deepcopy(trainer_waypoints)
             
-            print("Reached further (or same wp) than before (" .. tostring(trainer_waypoint_reached) .. "  segs: " .. tostring(message.numsegments) .."). Using as seed")
+            print("Reached further than before (" .. tostring(trainer_waypoint_reached) .. "  segs: " .. tostring(message.numsegments) .."). Using as seed")
             
 	        levelname = "main/levels/trainerrun.json"
 	        trainer.save_data(levelname, trainer_current_run)
