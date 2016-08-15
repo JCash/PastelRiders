@@ -125,5 +125,21 @@ function M.deepcopy(orig)
     return copy
 end
 
+function M.draw_circle(position, radius, color)
+    local numsegs = 40
+    local p1 = nil
+    for i = 0, numsegs do
+        local unit = i / (numsegs-1)
+        local angle = unit * math.pi * 2
+        local x = math.cos(angle) * radius
+        local y = math.sin(angle) * radius
+        local p2 = vmath.vector3(x, y, 0)
+        if i > 0 then
+            msg.post("@render:", "draw_line", {start_point = position + p1, end_point = position + p2, color = color})
+        end
+        p1 = p2
+    end
+end
+
 return M
 

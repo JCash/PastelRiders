@@ -222,4 +222,25 @@ function M.get_segment_normal(waypoints, index1, index2)
     return vmath.vector3(-segment.y, segment.x, 0)
 end
 
+function M.get_projected_position(position, waypoints, waypointindex, waypointcount)
+    local closest = 1000000
+    local projected = nil
+
+    for i = waypointindex, waypointindex+waypointcount do
+        local index = i
+        if index > #waypoints then
+            index = 1
+        end
+        local previndex = get_previous_index(waypoints, index)
+        local projected_candidate = util.project_point_to_line_segment(position, waypoints[previndex].pos, waypoints[index].pos)
+        local diff = position - projected_candidate
+        local dist = vmath.length(diff)
+        if dist < closest then
+            projected = projected_candidate
+            closest = dist
+        end
+    end
+    return projected
+end
+
 return M

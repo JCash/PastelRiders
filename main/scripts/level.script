@@ -46,7 +46,7 @@ local function cleanup_waypoints(self, waypoints)
         local curvescale = math.max(0, (1 - curviness/math.pi) - 1)
         waypoints[index].offset = normal * trackradius * curvescale * entering_curve_scale + rand_offset
         
-        waypoints[index].speed = 40 --level_maxspeed - level_maxspeed * curvescale
+        waypoints[index].speed = 25 --level_maxspeed - level_maxspeed * curvescale
         
         print("segment_next", segment_next)
         print("normal", normal)
@@ -269,6 +269,9 @@ function render_waypoints(waypoints)
 end
 
 function update(self, dt)
+print("DT", dt)
+    os.sleep(1000000)
+
 	if self.debug then
 	   render_waypoints(self.waypoints)
     end
