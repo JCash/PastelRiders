@@ -148,4 +148,99 @@ function M.load_waypoints(path)
     return waypoints
 end
 
+function M.get_previous_index(waypoints, index)
+    local index = index - 1
+    if index < 1 then
+        index = #waypoints
+    end
+    return index
+end
+
+function M.get_next_index(waypoints, index)
+    local index = index + 1
+    if index > #waypoints then
+        index = 1
+    end
+    return index
+end
+
+function M.wrap_index(waypoints, index)
+    return ((index-1) % #waypoints) + 1
+end
+
+-- gets a point on the path, given a distance, relative to the start position (which should be on the path)
+function M.get_curve_point(startposition, startindex, waypoints, distance)
+    while distance > 0 do
+        local segment = waypoints[startindex].pos + waypoints[startindex].offset - startposition
+        local segmentlength = vmath.length(segment)
+        
+        if segmentlength > distance then
+            segment = segment * (1 / segmentlength)
+            return startposition + segment * distance
+        end
+        
+        distance = distance - segmentlength
+        startposition = waypoints[startindex].pos
+        startindex = M.get_next_index(waypoints, startindex)
+    end
+    return startposition
+end
+
+
+-- returns the curviness (+/- angle) for a waypoint, given some lookahead distance
+function M.get_curviness(waypoints, index, distance)
+    index = M.wrap_index(waypoints, index)
+    local pos = waypoints[index].pos
+    local curve_point = M.get_curve_point(pos, index, waypoints, distance)
+    local segment = vmath.normalize(pos - waypoints[M.get_previous_index(waypoints, index)].pos)
+    local dir = curve_point - pos
+    local normal = vmath.vector3(-segment.y, segment.x, 0)
+    local dot = vmath.dot(segment, vmath.normalize(dir))
+
+    if vmath.dot(normal, dir) >= 0 then
+        return math.acos(dot)
+    else
+        return -math.acos(dot)
+    end
+end
+
+
+-- gets the segement (i2 - i1)
+function M.get_segment(waypoints, index1, index2)
+    index1 = M.wrap_index(waypoints, index1)
+    index2 = M.wrap_index(waypoints, index2)
+    return waypoints[index2].pos - waypoints[index1].pos
+end
+
+
+function M.get_segment_length(waypoints, index1, index2)
+    return vmath.length( M.get_segment(waypoints, index1, index2) )
+end
+
+function M.get_segment_normal(waypoints, index1, index2)
+    local segment = M.get_segment(waypoints, index1, index2)
+    return vmath.vector3(-segment.y, segment.x, 0)
+end
+
+function M.get_projected_position(position, waypoints, waypointindex, waypointcount)
+    local closest = 1000000
+    local projected = nil
+
+    for i = waypointindex, waypointindex+waypointcount do
+        local index = i
+        if index > #waypoints then
+            index = 1
+        end
+        local previndex = get_previous_index(waypoints, index)
+        local projected_candidate = util.project_point_to_line_segment(position, waypoints[previndex].pos, waypoints[index].pos)
+        local diff = position - projected_candidate
+        local dist = vmath.length(diff)
+        if dist < closest then
+            projected = projected_candidate
+            closest = dist
+        end
+    end
+    return projected
+end
+
 return M

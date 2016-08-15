@@ -10,10 +10,10 @@ render = /render/custom.renderc
 game_binding = /input/game.input_bindingc
 
 [display]
-width = 400
-height = 300
+width = 800
+height = 600
 variable_dt = 0
-update_frequency = 60
+update_frequency = 10
 
 [physics]
 scale = 0.02
