@@ -1,4 +1,4 @@
-local autonomous = require("main/scripts/autonomous")
+local autonomous = require("main/scripts/autonomous1")
 local constants = require("main/scripts/constants")
 local util = require("main/scripts/util")
 local waypoint = require("main/scripts/waypoint")
@@ -7,6 +7,7 @@ local render_helper = require("main/scripts/render_helper")
 local SPRITE_ROTATION = 16 -- since the sprite is directed in positive y, and not positive x
 
 go.property("ai", false)
+go.property("camera", false)
 go.property("debug", false)
 go.property("playerid", 1)
 
@@ -43,6 +44,7 @@ function reset(self)
     self.position = go.get_position(".")
     
     self.debug = true
+    self.trainer = 0
     
     self.vehicle = autonomous.create({position = self.position, maxspeed = self.maxspeed, radius = 32})
     self.lap = -1
@@ -54,6 +56,8 @@ function reset(self)
     self.record_tick = 0
     
     self.disabled = false
+    
+    msg.post("#sprite", "play_animation", {id = hash("car" .. self.playerid)})
 end
 
 function update_ai(self, dt)
@@ -64,22 +68,25 @@ function update_ai(self, dt)
 	-- UPDATE
 	self.vehicle.pause = self.pause
 	local valid_update = autonomous.update(self.vehicle, dt)
-	if not valid_update then
-        local wpindex = self.vehicle.waypointindex
-        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED,
-            {   reason = "Invalid position",
-                waypoint = wpindex,
-                time = self.lap_time,
-                speed = vmath.length(self.vehicle.velocity),
-                numsegments = self.vehicle.num_segments_visited
-            })
-        self.disabled = true
-        return
-	end
-	
+	if self.trainer == 1 then
+	    print("id/ trainer", self. playerid, self.trainer)
+		if not valid_update then
+	        local wpindex = self.vehicle.waypointindex
+	        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED,
+	            {   reason = "Invalid position",
+	                waypoint = wpindex,
+	                time = self.lap_time,
+	                speed = vmath.length(self.vehicle.velocity),
+	                numsegments = self.vehicle.num_segments_visited
+	            })
+	        self.disabled = true
+	        return
+		end
+    end
+    
+    -- POSITION
 	go.set_position(self.vehicle.position, ".")
 	self.position = self.vehicle.position
-	
 	
 	-- ROTATION
 	self.direction = self.vehicle.direction
@@ -155,9 +162,7 @@ function update_player(self, dt)
 		self.angle = util.rad_to_angle(self.radangle)
 		
     	self.direction = util.get_direction_from_angle(self.angle)
-    	--self.direction = util.get_direction_from_rad(self.radangle)
     	go.set_rotation( vmath.quat_rotation_z( util.angle_to_rad(self.angle-SPRITE_ROTATION) ), ".")
-    	--go.set_rotation( vmath.quat_rotation_z( self.radangle - math.pi*0.5, ".") )
 	end
 	
 	self.turndirection = 0
@@ -165,13 +170,7 @@ function update_player(self, dt)
 	
     if self.debug then
        -- msg.post("@render:", "draw_line", {start_point = self.position, end_point = self.position + self.direction * self.speed, color = vmath.vector4(1,1,1,1)})
-       --msg.post("@render:", "draw_line", {start_point = self.rc_from, end_point = self.rc_to, color = vmath.vector4(1,1,1,1)})
-       --msg.post("@render:", "draw_line", {start_point = self.rc_hit, end_point = self.rc_hit + self.rc_normal * 64, color = vmath.vector4(0,1,1,1)})
     end
-    
-    --self.rc_from = self.position + vmath.vector3(64, 0, 0)
-    --self.rc_to = self.position
-    --physics.ray_cast(self.rc_from, self.rc_to, { hash("track") } )
 end
 
 function update(self, dt)
@@ -179,12 +178,17 @@ function update(self, dt)
         return
     end
     
-	--update_player(self, dt)
-	update_ai(self, dt)
+    if self.ai == true then
+        update_ai(self, dt)
+    else
+        update_player(self, dt)
+    end
 	
 	-- CAMERA
-	local camerapos = self.position - vmath.vector3(render_helper.width/2, render_helper.height/2, 0)
-	go.set_position(camerapos, "/common/camera#camera")
+	if self.camera then
+		local camerapos = self.position - vmath.vector3(render_helper.width/2, render_helper.height/2, 0)
+		go.set_position(camerapos, "/common/camera#camera")
+	end
 	
 	if not self.vehicle.pause then
 		self.lap_time = self.lap_time + dt
@@ -217,7 +221,15 @@ function on_message(self, message_id, message, sender)
     	self.turndirection = -1
     elseif message_id == constants.PHYSICS_MESSAGE_CONTACT then 
         --print("Message " .. tostring(message_id))
-        if message.group == constants.PHYSICS_GROUP_OIL then
+        if message.group == constants.PHYSICS_GROUP_PLAYER then
+            -- impulse = mass * change in velocity
+            local separation = message.normal * (message.distance / (1 / 60.0))
+            local impulse = self.vehicle.mass * separation
+            autonomous.add_force(self.vehicle, impulse)
+            
+            -- todo: play some particle effect where they bumped together
+            
+        elseif message.group == constants.PHYSICS_GROUP_OIL then
         	self.touching[constants.PHYSICS_GROUP_OIL] = message
         elseif message.group == constants.PHYSICS_GROUP_TRACK then
         	--print("Message " .. tostring(message_id))
@@ -234,7 +246,10 @@ function on_message(self, message_id, message, sender)
 	        end
         end
     elseif message_id == constants.LEVEL_MESSAGE_INIT then
-    	   autonomous.init(self.vehicle, waypoint.get_waypoints(), 1)
-    	   self.initialized = 1
+
+        autonomous.init(self.vehicle, waypoint.get_waypoints(), 1)
+        self.trainer = tonumber(sys.get_config('trainer.enable', 0))
+        self.vehicle.trainer = self.trainer
+        self.initialized = 1
     end
 end

@@ -1,3 +1,5 @@
+local util = require("main/scripts/util")
+
 local M = {}
 
 function M.set_waypoints(waypoints)
@@ -231,7 +233,7 @@ function M.get_projected_position(position, waypoints, waypointindex, waypointco
         if index > #waypoints then
             index = 1
         end
-        local previndex = get_previous_index(waypoints, index)
+        local previndex = M.get_previous_index(waypoints, index)
         local projected_candidate = util.project_point_to_line_segment(position, waypoints[previndex].pos, waypoints[index].pos)
         local diff = position - projected_candidate
         local dist = vmath.length(diff)
@@ -242,5 +244,30 @@ function M.get_projected_position(position, waypoints, waypointindex, waypointco
     end
     return projected
 end
+
+function M.find_apex(vehicle)
+    local diff = vehicle.curve_point2 - vehicle.position
+    local halfpoint = vehicle.position + diff * 0.5
+    local projected_point = get_projected_position(halfpoint, vehicle.waypoints, vehicle.waypointindex, 4)
+    local apex_normal = halfpoint - projected_point
+    local length = vmath.length(apex_normal)
+    local apex = nil
+    if length > vehicle.trackradius then
+        --apex = projected_point + apex_normal * (1 / length) * vehicle.trackradius
+        apex = projected_point + apex_normal
+        
+        msg.post("@render:", "draw_line", {start_point = apex, end_point = projected_point, color = vmath.vector4(1,0,0,1)})
+    else
+        apex = projected_point + apex_normal
+        
+        msg.post("@render:", "draw_line", {start_point = apex, end_point = projected_point, color = vmath.vector4(0,1,0,1)})
+    end
+
+    msg.post("@render:", "draw_line", {start_point = projected_point, end_point = projected_point + vmath.vector3(10,7,0), color = vmath.vector4(1,1,0,1)})
+    --msg.post("@render:", "draw_line", {start_point = apex, end_point = projected_point, color = vmath.vector4(0,1,0,1)})
+    
+    return apex, apex_normal
+end
+
 
 return M

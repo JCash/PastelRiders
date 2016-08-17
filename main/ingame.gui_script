@@ -14,6 +14,10 @@ function on_message(self, message_id, message, sender)
         
         
     elseif message_id == constants.LEVEL_MESSAGE_PLAYER_TIME then
+        if message.playerid ~= 1 then
+            return
+        end
+        
         local pid = tostring(message.playerid)
         local node = gui.get_node("lap" .. pid)
         gui.set_text(node, util.format_time(message.total_time))
@@ -22,14 +26,15 @@ function on_message(self, message_id, message, sender)
         gui.set_text(node, tostring(math.floor(message.speed)))
 
     elseif message_id == constants.LEVEL_MESSAGE_LAP_TIME then
+        if message.playerid ~= 1 then
+            return
+        end
+        
         local pid = tostring(message.playerid)
+        local node = gui.get_node("lap_number" .. pid)
+        gui.set_text(node, tostring(message.lap))
         
-        local lapnumbernode = gui.get_node("lap_number" .. pid)
-        gui.set_text(lapnumbernode, tostring(message.lap))
-        
-        local node = gui.get_node("lap" .. pid)
+        node = gui.get_node("lap" .. pid)
         juicy.bounce_text(node, 0.5)
-        
-        
     end
 end

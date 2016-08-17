@@ -64,7 +64,7 @@ function update(self)
 	    -- 5. Re-enable color drawing
 	    render.set_color_mask(true, true, true, true)
 	end
-	    
+	
     -- 6. Continue as rendering usual! :)
     render.enable_state(render.STATE_BLEND)
     render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
@@ -85,7 +85,7 @@ function update(self)
     
     --render.set_projection(vmath.matrix4_orthographic(xoffset, xoffset + projected_width, yoffset, yoffset + projected_height, -1, 1))
     render.set_projection(vmath.matrix4_orthographic(0, projected_width, 0, projected_height, -1, 1))
-    
+        
     render_helper.zoom_factor = zoom_factor
     render_helper.width = projected_width
     render_helper.height = projected_height

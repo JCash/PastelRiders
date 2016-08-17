@@ -8,8 +8,6 @@ function init(self)
 	local trainer = tonumber(sys.get_config('trainer.enable', 0))
     print("TRAINER", trainer)
     
-    trainer = 1
-    
 	if trainer ~= 0 then
         levelname = sys.get_config('trainer.level', 'level01')
 	    print("TRAINER loading level", levelname)
