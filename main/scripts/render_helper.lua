@@ -3,11 +3,16 @@
 
 local M = {}
 
+--[[
+M.xoffset = 0
+M.yoffset = 0
+M.zoom_factor = 1
+--]]
 M.width = 800
 M.height = 600
 
-function M.action_to_position(action)
-    return vmath.vector3((M.xoffset or 0) + action.screen_x / (M.zoom_factor or 1), (M.yoffset or 0) + action.screen_y / (M.zoom_factor or 1), 0)
+function M.point_to_position(x, y)
+    return vmath.vector3((M.xoffset or 0) + x / (M.zoom_factor or 1), (M.yoffset or 0) + y / (M.zoom_factor or 1), 0)
 end
 
 return M

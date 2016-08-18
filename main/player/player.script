@@ -11,9 +11,12 @@ go.property("camera", false)
 go.property("debug", false)
 go.property("playerid", 1)
 
+local colors = { "blue", "yellow", "red", "green" }
+
 
 
 function init(self)
+    self.vehicle = nil
     reset(self)
 end
 
@@ -46,7 +49,12 @@ function reset(self)
     self.debug = true
     self.trainer = 0
     
-    self.vehicle = autonomous.create({position = self.position, maxspeed = self.maxspeed, radius = 32})
+    if self.vehicle ~= nil then
+        autonomous.destroy(self.vehicle)
+    end
+    
+    self.vehicle = autonomous.create({id = self.playerid, position = self.position, maxspeed = self.maxspeed, radius = 32})
+    
     self.lap = -1
     self.lap_time = 0
     self.total_time = 0
@@ -69,7 +77,6 @@ function update_ai(self, dt)
 	self.vehicle.pause = self.pause
 	local valid_update = autonomous.update(self.vehicle, dt)
 	if self.trainer == 1 then
-	    print("id/ trainer", self. playerid, self.trainer)
 		if not valid_update then
 	        local wpindex = self.vehicle.waypointindex
 	        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED,
@@ -239,7 +246,7 @@ function on_message(self, message_id, message, sender)
         if message.group == constants.PHYSICS_GROUP_FINISH then
         	self.lap = self.lap + 1
         	if self.lap > 0 then
-	        	print("LAP " .. tostring(self.lap), util.format_time(self.lap_time))
+	        	print("LAP " .. tostring(self.lap) .. " car " .. tostring(self.playerid), util.format_time(self.lap_time))
 	            msg.post("/common/common#gui", constants.LEVEL_MESSAGE_LAP_TIME, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time } )
                 msg.post("/level#script", constants.LEVEL_MESSAGE_LAP_FINISHED, { playerid = self.playerid, lap = self.lap, lap_time = self.lap_time } )
 	            self.lap_time = 0

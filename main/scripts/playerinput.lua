@@ -28,9 +28,6 @@ function M.on_input(playerid, player, action_id, action)
     	msg.post(player, constants.PLAYER_MESSAGE_LEFT, action)
     elseif action_id == player_input_keys[playerid][M.INPUT_KEY_RIGHT] then
     	msg.post(player, constants.PLAYER_MESSAGE_RIGHT, action)
-    	
-    elseif action_id == hash("space") and action.pressed then
-    	msg.post(player, constants.PLAYER_MESSAGE_PAUSE, action)
     end
 end
 

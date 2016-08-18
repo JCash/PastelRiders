@@ -2,6 +2,8 @@
 local M = {}
 
 M.TILE_SIZE = 32
+M.TRACK_RADIUS = (3 * 32 + 20) * 0.5 -- track is 3 tiles wide, car width is 20
+M.LEVEL_MAX_SPEED = 250
 
 M.NUM_DIRECTIONS = 64
 
@@ -23,6 +25,8 @@ M.PLAYER_MESSAGE_BOOST      = hash("boost")
 M.PLAYER_MESSAGE_SPIN       = hash("spin")
 
 M.PLAYER_MESSAGE_PAUSE      = hash("pause")
+
+M.INPUT_ACTION_PAUSE        = hash("space")
 
 M.TIMER_TUMBLE		= 0.8
 

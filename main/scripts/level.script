@@ -5,169 +5,13 @@ local waypoint = require("main/scripts/waypoint")
 local util = require("main/scripts/util")
 local debugutil = require("main/scripts/debugutil")
 local trainer = require("main/scripts/trainer")
+local render_helper = require("main/scripts/render_helper")
 
 local players = {}
 
-local trackradius = 3 * 32 * 0.5 - 10 -- from autonomous.lua
-        
-local trainer_runs = {}
-local trainer_current_run = {}
-local trainer_current_time = 0
-local trainer_best_run = 0 -- index into the trainer runs
-local trainer_best_run_time = 1000000 -- the currently best time
-local trainer_run_count = 0
-local trainer_waypoints = {}
-local trainer_show_last_number_of_runs = 10
-local trainer_waypoint_reached = 0 -- what is the highest index reached?
-local trainer_segments_visited = 0
-
-local trainer_best_run_data = nil
-
-local level_maxspeed = 250
-
-local function cleanup_waypoints(self, waypoints)
-    for i = 1, #waypoints do
-        local index = i
-        
-        local segment_prev = waypoint.get_segment(waypoints, index-1, index)
-        local segment_next = waypoint.get_segment(waypoints, index, index+1)
-        local entering_curve_scale = vmath.length_sqr(segment_prev) > vmath.length_sqr(segment_next) and 1 or -1
-        local curviness = waypoint.get_curviness(waypoints, index, 150)
-        local normal = vmath.normalize(vmath.vector3(-segment_prev.y, segment_prev.x, 0))
-        
-        if waypoints[index].offset ~= nil then
-            print("offset before", waypoints[index].offset)
-        end
-        
-        local dist = math.random()
-        local angle = math.pi * 2 * math.random()
-        local rand_offset = 0 * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
-        
-        local curvescale = math.max(0, (1 - curviness/math.pi) - 1)
-        waypoints[index].offset = normal * trackradius * curvescale * entering_curve_scale + rand_offset
-        
-        waypoints[index].speed = level_maxspeed - level_maxspeed * curvescale
-        
-        print("segment_next", segment_next)
-        print("normal", normal)
-        print("entering_curve", entering_curve_scale)
-        print("curvescale", curvescale)
-        print("offset after", waypoints[index].offset)
-    end
-end
-
-local function modify_waypoints(self, waypoints, maxspeed)
-    if self.trainer == 1 then
-        local index = 0
-        local lower_speed = 0
-        local speed_lower_limit = 60
-        
-        print("modify_waypoints")
-        
-        if trainer_waypoint_reached == 0 or trainer_waypoint_reached == #waypoints then
-            print("  lap case")    
-            index = math.floor(math.random() * (#waypoints-1)) + 1
-            
-        else
-            print("  wp case")
-            
-            local countback = 6
-			local r = math.random()
-			index = trainer_waypoint_reached - math.floor(r * countback)
-			index = waypoint.wrap_index(waypoints, index)
-			
-			print("trainer_waypoint_reached", trainer_waypoint_reached)
-            print("index", index)
-			
-            if trainer_waypoint_reached == 1 then
-                print("trainer_waypoint_reached / countback", trainer_waypoint_reached, countback)
-            end
-            
-            local start_search_index = trainer_waypoint_reached
-            if trainer_waypoint_reached < trainer_segments_visited then
-                -- we have reached almost all the way around
-                start_search_index = #waypoints
-                print("index (changed)", index)
-            end
-            
-            local found = 0
-            for i = start_search_index, start_search_index - countback, -1 do
-                local ii = waypoint.wrap_index(waypoints, i)
-
-                local speed = waypoints[ii].speed
-                if speed == 0 or speed > speed_lower_limit then
-                    index = ii
-                    print("index (changed)", index)
-                    break
-                end
-            end
-            
-		    
-		    lower_speed = 1
-        end
-        
-        --local dist = math.random()
-        --local angle = math.pi * 2 * math.random()
-        --waypoints[index].offset = trackradius * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
-        
-        --index = 1
-        
-        local segment_prev = waypoint.get_segment(waypoints, index-1, index)
-        local segment_next = waypoint.get_segment(waypoints, index, index+1)
-        local entering_curve_scale = vmath.length_sqr(segment_prev) > vmath.length_sqr(segment_next) and 1 or -1
-        local curviness = waypoint.get_curviness(waypoints, index, 150)
-        local normal = vmath.normalize(vmath.vector3(-segment_prev.y, segment_prev.x, 0))
-        
-        if waypoints[index].offset ~= nil then
-            print("offset before", waypoints[index].offset)
-        end
-        
-        
-        local dist = math.random()
-        local angle = math.pi * 2 * math.random()
-        local rand_offset = 10 * dist * vmath.vector3(math.cos(angle), math.sin(angle), 0)
-        
-        local curvescale = math.max(0, (1 - curviness/math.pi) - 1)
-        waypoints[index].offset = normal * trackradius * curvescale * entering_curve_scale + rand_offset
-        
-        --print("segment_next", segment_next)
-        --print("normal", normal)
-        --print("entering_curve", entering_curve_scale)
-        --print("curvescale", curvescale)
-        --print("offset after", waypoints[index].offset)
-        
-        if lower_speed ~= 0 then
-            local speed = waypoints[index].speed
-            
-            --print("lower_speed", lower_speed)
-            if speed == 0 then
-                waypoints[index].speed = maxspeed * 0.9
-                print(string.format("set maxspeed[%d] = %f", index, waypoints[index].speed))
-            elseif speed > maxspeed then
-                waypoints[index].speed = waypoints[index].speed * 0.9
-                print(string.format("set speed[%d] = %f", index, waypoints[index].speed))
-            elseif speed > speed_lower_limit  then
-                waypoints[index].speed = waypoints[index].speed * 0.95
-                print(string.format("speed[%d] = %f", index, waypoints[index].speed))
-            end
-        else
-            waypoints[index].speed = waypoints[index].speed * 1.10
-            print(string.format("increase speed[%d] = %f", index, waypoints[index].speed))
-        end
-    end
-end
-
-local function print_wps(index, waypoints)
-    for i = 1, #waypoints do
-        local s = (i == index) and "*" or ""
-        
-        print(string.format("%g: spd: %g %s", i, math.floor(waypoints[i].speed), s))
-    end
-end
-
 local function reset_waypoints(self, waypoints)
     if self.trainer == 1 then
-        print_wps(trainer_waypoint_reached, waypoints)
+        trainer.print_wps(trainer.trainer_waypoint_reached, waypoints)
     end
     
     waypoint.set_waypoints(waypoints)
@@ -200,15 +44,14 @@ function init(self)
 	
     local waypoints = nil
     
-    --if self.trainer == 1 then
-    if true then
-        local levelname = sys.get_config('trainer.level', 'level01')
-        levelname = "main/levels/" .. levelname .. ".wp.json"
-        waypoints = waypoint.load_waypoints(levelname)
-        
+    local levelname = sys.get_config('trainer.level', 'level01')
+    levelname = "main/levels/" .. levelname .. ".wp.json"
+    waypoints = waypoint.load_waypoints(levelname)
+    
+    if self.trainer == 1 then
         if waypoints ~= nil then
 	        trainer_segments_visited = #waypoints
-	        trainer_waypoint_reached = #waypoints
+	        trainer.trainer_waypoint_reached = #waypoints
 	    end
     end
     
@@ -219,12 +62,12 @@ function init(self)
 			table.insert(waypoints, { pos = util.coords_to_screen_vector(wp[1]-1, wp[2]-1), offset = vmath.vector3(0,0,0), speed = 0 } )
 		end
 
-		cleanup_waypoints(self, waypoints)
+		trainer.waypoints_setup(waypoints)
     end
     self.waypoints = waypoints
     
-    trainer_waypoints = util.deepcopy(self.waypoints)
-    reset_waypoints(self, trainer_waypoints)
+    trainer.trainer_waypoints = util.deepcopy(self.waypoints)
+    reset_waypoints(self, trainer.trainer_waypoints)
 	
 	for k, player in pairs(players) do
 	   msg.post(player, constants.LEVEL_MESSAGE_INIT)
@@ -234,7 +77,14 @@ function init(self)
 	   self.start_position = go.get_position(players[1])
 	   self.start_rotation = go.get_rotation(players[1])
 	   
-	   trainer_best_run_data = trainer.load_data("main/levels/trainerrun.json")
+	   trainer.trainer_best_run_data = trainer.load_data("main/levels/trainerrun.json")
+	   
+	   go.delete(players[2])
+       go.delete(players[3])
+       go.delete(players[4])
+       players[2] = nil
+       players[3] = nil
+       players[4] = nil
 	end
 end
 
@@ -247,9 +97,9 @@ local function reset_level(self, maxspeed)
         trainer_current_time = 0
         
         -- change the track
-        trainer_waypoints = util.deepcopy(self.waypoints)
-        modify_waypoints(self, trainer_waypoints, maxspeed)
-        reset_waypoints(self, trainer_waypoints)
+        trainer.trainer_waypoints = util.deepcopy(self.waypoints)
+        trainer.modify_waypoints(trainer.trainer_waypoints, maxspeed)
+        reset_waypoints(self, trainer.trainer_waypoints)
         
         -- reset the players
         go.set_position(self.start_position, players[1])
@@ -272,11 +122,6 @@ function render_waypoints(waypoints)
         if wp1.offset ~= nil then
             msg.post("@render:", "draw_line", {start_point = wp1.pos, end_point = wp1.pos + wp1.offset, color = vmath.vector4(1,1,1,1)})
         end
-        if wp1.speed ~= nil then
-            local u = (i % 3) / 3
-            local offset = vmath.vector3(u*10, u, 0)
-            --msg.post("@render:", "draw_line", {start_point = wp1.pos + offset, end_point = wp1.pos + offset + vmath.vector3(-1,1,0) * wp1.speed, color = vmath.vector4(1,1,0,1)})
-        end
     end
 end
 
@@ -286,19 +131,10 @@ function update(self, dt)
     end
     
     if self.trainer == 1 then
-        
-        if not self.pause then
-	        trainer_current_time = trainer_current_time + dt
-	        if trainer_best_run ~= 0 and trainer_current_time > trainer_best_run_time then
-	            -- if the run took too long, abort
-	            msg.post("#", constants.TRAINER_MESSAGE_FAILED, { reason = "Lap took too long", waypoint = 0, time = trainer_current_time, speed = 0, numsegments = 0 })
-	        end
-	    end
-        --if trainer_best_run ~= 0 then
-        if trainer_best_run_data ~= nil then
-            --render_trainer_run(trainer_runs[trainer_best_run].data)
-            trainer.render_trainer_data(trainer_best_run_data)
+        if not self.pause then        
+            trainer.update(dt)
         end
+        trainer.render_trainer_data(trainer.trainer_best_run_data)
     end
 end
 
@@ -306,84 +142,69 @@ end
 function on_message(self, message_id, message, sender)
     if message_id == constants.RECORD_MESSAGE_PLAYER_POSITION then
         if self.trainer == 1 then
-	        table.insert(trainer_current_run, message)
+	        table.insert(trainer.trainer_current_run, message)
 	    end
 	elseif message_id == constants.LEVEL_MESSAGE_LAP_FINISHED then
 
         -- If all players have finished, and the timer has run out
         if self.trainer == 1 then
-            trainer_run_count = trainer_run_count + 1
-             
-            table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
-            trainer_waypoint_reached = #trainer_waypoints
+            trainer.trainer_run_count = trainer.trainer_run_count + 1
+            
+            trainer.trainer_waypoint_reached = #trainer.trainer_waypoints
             trainer_segments_visited = #self.waypoints
             
             if message.lap_time < trainer_best_run_time then
-                trainer_best_run = trainer_run_count
+                trainer_best_run = trainer.trainer_run_count
                 trainer_best_run_time = message.lap_time
-                trainer_best_run_data = trainer_current_run
-                self.waypoints = util.deepcopy(trainer_waypoints)
+                trainer.trainer_best_run_data = trainer.trainer_current_run
+                self.waypoints = util.deepcopy(trainer.trainer_waypoints)
                 
                 print("New best lap found. Using as seed:")
-                print_wps(trainer_waypoint_reached, self.waypoints)
+                print_wps(trainer.trainer_waypoint_reached, self.waypoints)
                 print("<- -")
                 
                 local levelname = sys.get_config('trainer.level', 'level01')
                 levelname = "main/levels/" .. levelname .. ".wp.json"
-                waypoint.save_waypoints(levelname, trainer_waypoints)
+                waypoint.save_waypoints(levelname, trainer.trainer_waypoints)
                 
                 print("trainer_segments_visited", trainer_segments_visited)
         
             end
             
-            trainer_current_run = {}
+            trainer.trainer_current_run = {}
             
-            print("TRAINER RUN", trainer_run_count, "BEST:", trainer_best_run_time, trainer_best_run)
-            
-            if #trainer_runs > trainer_show_last_number_of_runs then
-	            if (trainer_run_count - trainer_show_last_number_of_runs) ~= trainer_best_run then
-	                trainer_runs[trainer_run_count - trainer_show_last_number_of_runs] = nil
-	            end
-            end
+            print("TRAINER RUN", trainer.trainer_run_count, "BEST:", trainer_best_run_time, trainer_best_run)
             
             reset_level(self, 0)
         end
     elseif message_id == constants.TRAINER_MESSAGE_FAILED then
         if self.trainer == 1 then
-	        trainer_run_count = trainer_run_count + 1
-	        print(string.format("TRAINER RUN (failed) %d, %s, t: %f, wp: %d, spd: %f", trainer_run_count, message.reason, message.time, message.waypoint, message.speed))
-	        
-	        table.insert(trainer_runs, { number = trainer_run_count, time = message.lap_time, data = trainer_current_run})
-	
-	        if #trainer_runs > trainer_show_last_number_of_runs then
-	            if (trainer_run_count - trainer_show_last_number_of_runs) ~= trainer_best_run then
-	                trainer_runs[trainer_run_count - trainer_show_last_number_of_runs] = nil
-	            end
-	        end
+	        trainer.trainer_run_count = trainer.trainer_run_count + 1
+	        print(string.format("TRAINER RUN (failed) %d, %s, t: %f, wp: %d, spd: %f", trainer.trainer_run_count, message.reason, message.time, message.waypoint, message.speed))
 	        
 	        print("trainer_segments_visited", trainer_segments_visited)
 	        print("message.numsegments", message.numsegments)
 	        
 	        if message.numsegments >= trainer_segments_visited then
 	        
-	            print("trainer_waypoint_reached", message.waypoint)
+	            print("trainer.trainer_waypoint_reached", message.waypoint)
 	            
 	            trainer_segments_visited = message.numsegments
-	            trainer_waypoint_reached = message.waypoint
+	            trainer.trainer_waypoint_reached = message.waypoint
 	
-	            trainer_best_run_data = trainer_current_run
+	            trainer.trainer_best_run_data = trainer.trainer_current_run
 	        
-	            self.waypoints = util.deepcopy(trainer_waypoints)
+	            self.waypoints = util.deepcopy(trainer.trainer_waypoints)
 	            
-	            print("Reached further than before (" .. tostring(trainer_waypoint_reached) .. "  segs: " .. tostring(message.numsegments) .."). Using as seed")
+	            print("Reached further than before (" .. tostring(trainer.trainer_waypoint_reached) .. "  segs: " .. tostring(message.numsegments) .."). Using as seed")
 	            
 		        levelname = "main/levels/trainerrun.json"
-		        trainer.save_data(levelname, trainer_current_run)
+		        trainer.save_data(levelname, trainer.trainer_current_run)
 		        
 	        else
 	            --
 	        end
-	        trainer_current_run = {}
+	        trainer.trainer_current_run = {}
 	        
 	        reset_level(self, message.speed)
 	    end
@@ -394,8 +215,12 @@ function on_input(self, action_id, action)
 	local playerid = 1
 	playerinput.on_input(playerid, players[playerid], action_id, action)
 	
-	if action_id == hash("space") and action.pressed then
+	if action_id == constants.INPUT_ACTION_PAUSE and action.pressed then
         self.pause = not self.pause
+        
+        for k, player in pairs(players) do
+            msg.post(player, constants.PLAYER_MESSAGE_PAUSE, action)
+        end
     end
 	
 	debugutil.on_input(self, action_id, action)

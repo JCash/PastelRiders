@@ -5,9 +5,15 @@ local waypoint = require("main/scripts/waypoint")
 
 local M = {}
 
+-- All created vehicles are put in this table
+-- That way, they can easily avoid each other
+M.vehicles = {}
+
 -- Creates an instance
 function M.create(parameters)
-	return {
+	vehicle = {
+	    id = parameters.id,
+	    
 		position = parameters.position,
 		maxspeed = parameters.maxspeed,
 		radius = parameters.radius,
@@ -15,6 +21,7 @@ function M.create(parameters)
 		oneovermass = 1 / 1,
 		
 		-- internal variables
+		speed = 0,
 		velocity = vmath.vector3(0,0,0),
 		direction = vmath.vector3(0,1,0),
 		accumulated_force = vmath.vector3(0,0,0),
@@ -31,7 +38,7 @@ function M.create(parameters)
 		pause = false,
 		trainer = 0,
 		
-		-- car properties		
+		-- car properties
 		max_force = 250, --125,
         max_speed = 250,
         min_speed = 50,
@@ -40,6 +47,13 @@ function M.create(parameters)
 		targetlookaheaddist = 128,--24,
 		curve_lookahead = 160
 	}
+	
+	M.vehicles[vehicle.id] = vehicle
+	return vehicle
+end
+
+function M.destroy(vehicle)
+    table.remove(M.vehicles, vehicle.id)
 end
 
 
@@ -75,21 +89,24 @@ function M.update(vehicle, dt)
 		   return false
 		end
     end
+    M.separate(vehicle)
     	
 	if not vehicle.pause then
 		local acceleration = vehicle.accumulated_force * vehicle.oneovermass
 		
         vehicle.velocity = vehicle.velocity + acceleration * dt
-        if vmath.length(vehicle.velocity) > vehicle.max_speed then
-           vehicle.velocity = vmath.normalize(vehicle.velocity) * vehicle.max_speed
+        
+        vehicle.speed = vmath.length(vehicle.velocity)
+        if vehicle.speed > 0.001 then
+            vehicle.direction = vehicle.velocity * (1 / vehicle.speed)
+        end
+        
+        if vehicle.speed > vehicle.max_speed then
+            vehicle.speed = vehicle.max_speed
+            vehicle.velocity = vehicle.direction * vehicle.max_speed
         end
         
 		vehicle.position = vehicle.position + vehicle.velocity * dt
-		
-		local length = vmath.length(vehicle.velocity)
-        if length > 0.001 then
-            vehicle.direction = vehicle.velocity * (1 / length)
-        end
 	end
 	vehicle.accumulated_force = vmath.vector3(0,0,0)
 	
@@ -204,10 +221,8 @@ local function get_vehicle_position_scale(vehicle)
 end
 
 
-function M.update_target(vehicle, dt)
-	local speed = vmath.length(vehicle.velocity)
-	
-	local speed_scale = speed / vehicle.maxspeed
+function M.update_target(vehicle, dt)	
+	local speed_scale = vehicle.speed / vehicle.maxspeed
 	local predicted_pos_scale = math.max(0, 5 - get_predicted_distance_scale(vehicle)) / 5
 	local curve_scale = get_curve_dot_scale(vehicle)
 	local lookahead_scale = speed_scale * predicted_pos_scale * curve_scale
@@ -271,27 +286,47 @@ util.draw_circle(wp.pos + wp.offset, targetradius, vmath.vector4(1,1,0,1))
 	return true
 end
 
-function M.update_recommended_speed(vehicle, unit, targetspeed, dt)
-    local speed = vmath.length(vehicle.velocity)
-    
-    if speed < 0.01 then
+function M.update_recommended_speed(vehicle, unit, targetspeed, dt)    
+    if vehicle.speed < 0.01 then
         return
     end
-    if speed < targetspeed then
+    if vehicle.speed < targetspeed then
         return
     end
     if unit > 1 then
         return
     end
-        
-    local dir = vehicle.velocity * (1 / speed)
-    local delta_speed = (speed - targetspeed)
+
+    local delta_speed = (vehicle.speed - targetspeed)
     local brake = -vehicle.mass * (delta_speed / dt) * (unit * unit)
     --print("brake", brake, unit)
 
-    msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake * dir, color = vmath.vector4(1,0,0.5,1)})
+    msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake * vehicle.direction, color = vmath.vector4(1,0,0.5,1)})
     
-    M.add_force(vehicle, brake * dir)
+    M.add_force(vehicle, brake * vehicle.direction)
+end
+
+function M.separate(vehicle)
+    local radius = 80
+    local total = vmath.vector3(0,0,0)
+    for k, other in pairs(M.vehicles) do
+        if k ~= vehicle.id then
+            local diff = other.position - vehicle.position
+            local dot = vmath.dot(diff, vehicle.direction)
+            if dot > 0 then -- only consider vehicles in front of us
+
+                local distance = vmath.length(diff)
+                if distance > 0 and distance < radius then
+                    local unit = distance / radius
+                    local dir = diff * (-1 / distance) * (1 / (unit*unit))
+                    total = total + dir
+                end
+            end
+        end
+    end
+    
+    M.add_force(vehicle, total)
+    --msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + total, color = vmath.vector4(0,1,0,1)})
 end
 
 function M.debug(vehicle)
@@ -303,7 +338,8 @@ function M.debug(vehicle)
     
 	msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + vehicle.velocity, color = vmath.vector4(1,1,1,1)})
 	
-	msg.post("@render:", "draw_line", {start_point = vehicle.waypoints[vehicle.waypointindex].pos + vmath.vector3(2,2,0), end_point = vehicle.waypoints[vehicle.waypointindexprev].pos + vmath.vector3(-2,-2,0), color = vmath.vector4(0, 1,1,1)})
+	-- What segment is the car currently in?
+	--msg.post("@render:", "draw_line", {start_point = vehicle.waypoints[vehicle.waypointindex].pos + vmath.vector3(2,2,0), end_point = vehicle.waypoints[vehicle.waypointindexprev].pos + vmath.vector3(-2,-2,0), color = vmath.vector4(0, 1,1,1)})
 	
 	msg.post("@render:", "draw_line", {start_point = vehicle.curve_point, end_point = vehicle.curve_point + vmath.vector3(7, 10, 0), color = vmath.vector4(1, 1,1,1)})
     msg.post("@render:", "draw_line", {start_point = vehicle.curve_point2, end_point = vehicle.curve_point2 + vmath.vector3(7, 10, 0), color = vmath.vector4(1, 1,1,1)})	
