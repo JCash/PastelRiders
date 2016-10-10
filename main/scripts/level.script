@@ -2,7 +2,6 @@ local constants = require("main/scripts/constants")
 local playerinput = require("main/scripts/playerinput")
 local screenfade = require("main/scripts/screenfade")
 local waypoint = require("main/scripts/waypoint")
-local track = require("main/scripts/track")
 local util = require("main/scripts/util")
 local debugutil = require("main/scripts/debugutil")
 local trainer = require("main/scripts/trainer")
@@ -45,7 +44,6 @@ function init(self)
     for _,item in ipairs(obstacles_orig) do
         table.insert(obstacles, { pos = util.coords_to_screen_vector(item.x-1, item.y-1), tile = item.tile } )
     end
-    track.obstacles = obstacles
 	
 	local pos = go.get_position("waypointstart")
 	local tile_pos_x, tile_pos_y = util.screen_to_coords(pos.x, pos.y)
@@ -74,7 +72,6 @@ function init(self)
 		trainer.waypoints_setup(waypoints)
     end
     self.waypoints = waypoints
-    track.waypoints = waypoints
     
     if self.trainer then
         trainer.trainer_waypoints = util.deepcopy(self.waypoints)

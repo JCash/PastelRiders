@@ -1,16 +1,17 @@
 
 local M = {}
 
+local path = "defold_rec.ivf"
 local recording = 0
 
 function M.on_input(self, action_id, action)
 	if action_id == hash("key_1") and action.pressed then
 	    	if recording == 0 then
-	    		print("RECORDING")
-	    		msg.post("@system:", "start_record", { file_name = "/Users/mawe/defold_rec.ivf" } )
+	    		print("RECORDING TO " .. path)
+	    		msg.post("@system:", "start_record", { file_name = path } )
 	    		recording = 1
 	    	else
-	    		print("STOPPED RECORDING")
+	    		print("STOPPED RECORDING TO " .. path)
 	    		msg.post("@system:", "stop_record")
 	    		recording = 0
 	    	end

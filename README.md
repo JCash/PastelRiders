@@ -4,6 +4,32 @@ there exists a [dev blog](https://forum.defold.com/t/a-game-by-its-cover-pastel-
 Even though this entry was never finished in time for the jam, I continued to develop it since I
 still had a few ideas I wanted to try out, and eventually it will become a finished game.
 
+* Play
+
+Control the blue car with WASD 
+
+
+* Structure
+
+Here is roughly what the scripts do (subject to change)
+
+level.script - controls the logic of the ingame session.
+player.script - controls the player (both user, and ai)
+
+autonomous*.lua - different versions of how to calculate the ai for the vehicles
+waypoints.lua - helper functions to calculate path related queries
+trainer.lua - logic to help modifying the waypoints before trying to generate a good race line
+util.lua - some helper functions
+constants.lua - the commonly reused constants 
+
+
+DEBUG KEYS:
+0 - Toggle zoom
+1 - Togle video recording
+Space - Toggle pause
+
+
+
 
 * Links
 

@@ -17,7 +17,7 @@ instances {
     id: "script"
     properties {
       id: "ai"
-      value: "true"
+      value: "false"
       type: PROPERTY_TYPE_BOOLEAN
     }
     properties {

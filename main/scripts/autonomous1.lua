@@ -1,7 +1,6 @@
 
 local util = require("main/scripts/util")
 local waypoint = require("main/scripts/waypoint")
-local track = require("main/scripts/track")
 
 local M = {}
 
