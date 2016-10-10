@@ -1,15 +1,23 @@
-* This repository was a part of the the game jam A Game By Its Cover, and
+# About
+
+This repository was a part of the the game jam A Game By Its Cover, and
 there exists a [dev blog](https://forum.defold.com/t/a-game-by-its-cover-pastel-riders/2458) about it.
 
 Even though this entry was never finished in time for the jam, I continued to develop it since I
 still had a few ideas I wanted to try out, and eventually it will become a finished game.
 
-* Play
+# How to play
 
-Control the blue car with WASD 
+Control the blue car with WASD keys
+
+## DEBUG KEYS:
+
+* 0 - Toggle zoom
+* 1 - Togle video recording
+* Space - Toggle pause
 
 
-* Structure
+# Code Structure
 
 Here is roughly what the scripts do (subject to change)
 
@@ -23,15 +31,11 @@ util.lua - some helper functions
 constants.lua - the commonly reused constants 
 
 
-DEBUG KEYS:
-0 - Toggle zoom
-1 - Togle video recording
-Space - Toggle pause
 
 
 
 
-* Links
+# Links
 
 Here are some interesting links I read during this project
 
@@ -43,6 +47,6 @@ Here are some interesting links I read during this project
 
 [Genetic Algorithm Experiment](http://guillaumebouchetepitech.github.io/geneticAlgorithm_experiment/carDemo/src_html/index.html)
 
-** Credits
+# Credits
 
 http://www.1001fonts.com/conthrax-font.html
