@@ -283,7 +283,7 @@ convex_hulls {
 convex_hulls {
   index: 273
   count: 8
-  collision_group: "obstacle"
+  collision_group: "destroyables"
 }
 convex_hulls {
   index: 281
@@ -325,6 +325,7 @@ convex_hulls {
   count: 4
   collision_group: "track"
 }
+collision_groups: "destroyables"
 collision_groups: "obstacle"
 collision_groups: "oil"
 collision_groups: "track"

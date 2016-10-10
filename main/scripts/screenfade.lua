@@ -73,11 +73,11 @@ function M.do_screen_fade_in(width, height, startpos)
             --go.animate(tile, "scale", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, 0.4 - 0.35 * unitcount, count * 0.008, stencil_anim_done)
             
             -- random
-            --go.animate(tile, "scale", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, 0.2 + math.random() * 0.2, math.random() * 0.3, stencil_anim_done)
+            go.animate(tile, "scale", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, 0.2 + math.random() * 0.2, math.random() * 0.3, stencil_anim_done)
 
 			-- bottom left to top right
 			local manhattandist = (x + y) / (num_tiles_x + num_tiles_y)
-			go.animate(tile, "scale", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, 0.5, manhattandist * 0.8, stencil_anim_done)
+			--go.animate(tile, "scale", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, 0.5, manhattandist * 0.8, stencil_anim_done)
             
             count = count + 1
     	end)

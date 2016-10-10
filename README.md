@@ -1,4 +1,9 @@
-*
+* This repository was a part of the the game jam A Game By Its Cover, and
+there exists a [dev blog](https://forum.defold.com/t/a-game-by-its-cover-pastel-riders/2458) about it.
+
+Even though this entry was never finished in time for the jam, I continued to develop it since I
+still had a few ideas I wanted to try out, and eventually it will become a finished game.
+
 
 * Links
 

@@ -1,10 +1,10 @@
 name: "default"
 instances {
-  id: "player4"
+  id: "player1"
   prototype: "/main/player/player.go"
   position {
-    x: 60.0
-    y: 300.0
+    x: 100.0
+    y: 256.0
     z: 0.0
   }
   rotation {
@@ -21,8 +21,13 @@ instances {
       type: PROPERTY_TYPE_BOOLEAN
     }
     properties {
+      id: "camera"
+      value: "true"
+      type: PROPERTY_TYPE_BOOLEAN
+    }
+    properties {
       id: "playerid"
-      value: "4.0"
+      value: "1.0"
       type: PROPERTY_TYPE_NUMBER
     }
   }
@@ -99,11 +104,11 @@ instances {
   }
 }
 instances {
-  id: "player1"
+  id: "player4"
   prototype: "/main/player/player.go"
   position {
-    x: 100.0
-    y: 256.0
+    x: 60.0
+    y: 300.0
     z: 0.0
   }
   rotation {
@@ -120,13 +125,8 @@ instances {
       type: PROPERTY_TYPE_BOOLEAN
     }
     properties {
-      id: "camera"
-      value: "true"
-      type: PROPERTY_TYPE_BOOLEAN
-    }
-    properties {
       id: "playerid"
-      value: "1.0"
+      value: "4.0"
       type: PROPERTY_TYPE_NUMBER
     }
   }

@@ -11,9 +11,6 @@ go.property("camera", false)
 go.property("debug", false)
 go.property("playerid", 1)
 
-local colors = { "blue", "yellow", "red", "green" }
-
-
 
 function init(self)
     self.vehicle = nil
@@ -46,8 +43,8 @@ function reset(self)
     self.direction = util.get_direction_from_angle(self.angle)
     self.position = go.get_position(".")
     
-    self.debug = true
-    self.trainer = 0
+    self.debug = false
+    self.trainer = false
     
     if self.vehicle ~= nil then
         autonomous.destroy(self.vehicle)
@@ -76,7 +73,7 @@ function update_ai(self, dt)
 	-- UPDATE
 	self.vehicle.pause = self.pause
 	local valid_update = autonomous.update(self.vehicle, dt)
-	if self.trainer == 1 then
+	if self.trainer then
 		if not valid_update then
 	        local wpindex = self.vehicle.waypointindex
 	        msg.post("/level#script", constants.TRAINER_MESSAGE_FAILED,
@@ -241,6 +238,11 @@ function on_message(self, message_id, message, sender)
         elseif message.group == constants.PHYSICS_GROUP_TRACK then
         	--print("Message " .. tostring(message_id))
         	--pprint(message)
+        elseif message.group == constants.PHYSICS_GROUP_OBSTACLE then
+            self.position = self.position + message.normal * (message.distance + 2)
+            self.direction = util.reflect_point(self.direction, vmath.vector3(0,0,0), message.normal)
+            local restitution = 0.45
+            self.speed = self.speed * restitution
         end
     elseif message_id == constants.PHYSICS_MESSAGE_TRIGGER and message.enter then
         if message.group == constants.PHYSICS_GROUP_FINISH then
@@ -255,7 +257,8 @@ function on_message(self, message_id, message, sender)
     elseif message_id == constants.LEVEL_MESSAGE_INIT then
 
         autonomous.init(self.vehicle, waypoint.get_waypoints(), 1)
-        self.trainer = tonumber(sys.get_config('trainer.enable', 0))
+        self.debug = tonumber(sys.get_config('level.debug', 0)) ~= 0
+        self.trainer = tonumber(sys.get_config('trainer.enable', 0)) ~= 0
         self.vehicle.trainer = self.trainer
         self.initialized = 1
     end

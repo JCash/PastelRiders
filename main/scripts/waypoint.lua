@@ -122,17 +122,22 @@ function M.decode_vec3(s)
 end
 
 function M.load_waypoints(path)
-    local file, result = io.open(path, "rb")
-    if file == nil then
-        print("No such file", path)
-        return nil
-    end
+    local trainer = tonumber(sys.get_config('trainer.enable', 0)) ~= 0
+    if trainer then
+	    local file, result = io.open(path, "rb")
+	    if file == nil then
+	        print("No such file", path)
+	        return nil
+	    end
     
-    local encoded = ""
-    for line in file:lines() do
-        encoded = encoded .. line
-    end
-    file:close()
+	    local encoded = ""
+	    for line in file:lines() do
+	        encoded = encoded .. line
+	    end
+	    file:close()
+	else
+        encoded = sys.load_resource(path)
+	end
 
     local decodedwaypoints = json.decode(encoded)
     

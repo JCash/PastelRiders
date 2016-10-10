@@ -1,6 +1,7 @@
 [project]
 title = Racer2D
 version = 0.1
+custom_resources = main/levels/level01.wp.json
 
 [bootstrap]
 main_collection = /main/main.collectionc
@@ -30,7 +31,11 @@ max_debug_vertices = 100000
 [sprite]
 max_count = 512
 
+[level]
+debug = 0
+
 [trainer]
 enable = 0
 level = level01
+
 

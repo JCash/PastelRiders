@@ -1,7 +1,7 @@
 
--- debugging purposes only
 local util = require("main/scripts/util")
 local waypoint = require("main/scripts/waypoint")
+local track = require("main/scripts/track")
 
 local M = {}
 
@@ -89,7 +89,12 @@ function M.update(vehicle, dt)
 		   return false
 		end
     end
+    
+    -- separate the vehicles
     M.separate(vehicle)
+    
+    -- Did not work very good, can just skip it
+    -- M.avoid_obstacle(vehicle)
     	
 	if not vehicle.pause then
 		local acceleration = vehicle.accumulated_force * vehicle.oneovermass
@@ -205,6 +210,21 @@ local function get_predicted_distance_scale(vehicle)
 	return math.max(0, scale)
 end
 
+local function get_predicted_pos_seek(vehicle)
+    local predicted_pos = vehicle.position + vehicle.velocity * (1 / 60)
+
+    local predicted_distance = vmath.length( predicted_pos - vehicle.position )
+    local curve_pos_prediction = waypoint.get_curve_point(vehicle.position, vehicle.waypointindex, vehicle.waypoints, predicted_distance )
+    local prediction_pos_to_curve_pos = curve_pos_prediction - predicted_pos
+    local predicted_distance_from_curve = vmath.length(prediction_pos_to_curve_pos)
+    
+    if predicted_distance_from_curve > vehicle.trackradius then
+        return curve_pos_prediction
+    end
+    return nil
+end
+
+
 local function get_curve_dot_scale(vehicle)
 	local v1 = vmath.normalize(vehicle.curve_point - vehicle.position)
 	local v2 = vmath.normalize(vehicle.curve_point2 - vehicle.curve_point)
@@ -223,8 +243,9 @@ end
 
 function M.update_target(vehicle, dt)	
 	local speed_scale = vehicle.speed / vehicle.maxspeed
-	local predicted_pos_scale = math.max(0, 5 - get_predicted_distance_scale(vehicle)) / 5
+	local predicted_pos_scale = 1--math.max(0, 5 - get_predicted_distance_scale(vehicle)) / 5
 	local curve_scale = get_curve_dot_scale(vehicle)
+	-- Depending on some variables, we look closer to or farther away from the vehicle
 	local lookahead_scale = speed_scale * predicted_pos_scale * curve_scale
     local lookahead_slide = 0.15 + 0.85 * math.min(1, lookahead_scale)
     
@@ -270,7 +291,7 @@ function M.update_target(vehicle, dt)
     recommended_speed = math.max(vehicle.min_speed, recommended_speed)
     local velscale = ((recommended_speed - vehicle.min_speed) / (vehicle.max_speed - vehicle.min_speed))
     local targetradius = vehicle.trackradius * 2 * (1 + (1 - velscale))
-util.draw_circle(wp.pos + wp.offset, targetradius, vmath.vector4(1,1,0,1))
+--util.draw_circle(wp.pos + wp.offset, targetradius, vmath.vector4(1,1,0,1))
     
     local diff = vehicle.waypoints[vehicle.waypointindex].pos - vehicle.position
     local distance = vmath.length(diff)
@@ -299,9 +320,8 @@ function M.update_recommended_speed(vehicle, unit, targetspeed, dt)
 
     local delta_speed = (vehicle.speed - targetspeed)
     local brake = -vehicle.mass * (delta_speed / dt) * (unit * unit)
-    --print("brake", brake, unit)
 
-    msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake * vehicle.direction, color = vmath.vector4(1,0,0.5,1)})
+    --msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + brake * vehicle.direction, color = vmath.vector4(1,0,0.5,1)})
     
     M.add_force(vehicle, brake * vehicle.direction)
 end
@@ -327,6 +347,54 @@ function M.separate(vehicle)
     
     M.add_force(vehicle, total)
     --msg.post("@render:", "draw_line", {start_point = vehicle.position, end_point = vehicle.position + total, color = vmath.vector4(0,1,0,1)})
+end
+
+function M.avoid_obstacle(vehicle)
+    -- find the closest obstacle
+    local lookahead = 150
+    local radius = 20
+    
+    local closest_dist = lookahead
+    local closest_obstacle = 0
+    local closest_projected_dist = 0
+    local closest_projected_diff = nil
+    
+    for k, other in pairs(track.obstacles) do
+        local diff = other.pos - vehicle.position
+        local dot = vmath.dot(diff, vehicle.direction)
+        if dot > 0 then -- only consider obstacles in front of us
+            local projected = vehicle.position + vehicle.direction * dot
+            local projecteddiff = projected - other.pos
+            local projecteddistance = vmath.length(projecteddiff)
+            if projecteddistance > 0 and projecteddistance < radius then
+                local distance = vmath.length(diff)
+                if distance < closest_dist then
+                    closest_dist = distance
+                    closest_obstacle = k
+                    closest_projected_dist = projecteddistance
+                    closest_projected_diff = projecteddiff
+                end
+            end
+        end
+    end
+    
+    if closest_obstacle > 0 then
+        local projectedunit = 1 --closest_projected_dist / radius
+        local unit = math.max(0.1, closest_dist / lookahead)
+        local dir = closest_projected_diff * (1 / closest_projected_dist) * (1 / (unit*unit*projectedunit*projectedunit))
+        
+        -- check that we're not steering outside of the track
+        local item = track.obstacles[closest_obstacle]
+        local projected = util.project_point_to_line_segment(item.pos, vehicle.waypoints[vehicle.waypointindexprev].pos, vehicle.waypoints[vehicle.waypointindex].pos)
+        local dot = vmath.dot( projected - item.pos, dir )
+        if dot < 0 then
+            dir = -dir
+        end
+        
+        M.add_force(vehicle, dir)
+        
+        --util.draw_circle(item.pos, radius, vmath.vector4(0,0.5,0,1))
+    end
 end
 
 function M.debug(vehicle)

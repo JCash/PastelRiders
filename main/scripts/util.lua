@@ -141,5 +141,25 @@ function M.draw_circle(position, radius, color)
     end
 end
 
+function M.tilemap_collect(tilemap_url, layername)
+    local items = {}
+    local x, y, w, h = tilemap.get_bounds(tilemap_url)
+    for xi = x, x + w - 1 do
+	    for yi = y, y + h - 1 do
+	        local tile = tilemap.get_tile(tilemap_url, layername, xi, yi)
+	        if tile ~= 0 then
+	           table.insert(items, { x=xi, y=yi, tile=tile })
+	        end
+	    end
+	end
+	return items
+end
+
+function M.reflect_point(p, planepos, planenormal)
+    local vector = p - planepos
+    local dot = vmath.dot(vector, planenormal)
+    return p - (2 * dot) * planenormal
+end
+
 return M
 
