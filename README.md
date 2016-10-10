@@ -8,6 +8,8 @@ still had a few ideas I wanted to try out, and eventually it will become a finis
 
 # How to play
 
+[HTML5](https://jcash.github.io/demos/defold/racer2d/Racer2D/index.html)
+
 Control the blue car with WASD keys
 
 ## DEBUG KEYS:
